@@ -52,34 +52,39 @@ function logState(context) {
 // --- Main Logic ---
 
 function initializeMonitor() {
-    log('Preload script injected. Waiting for page to load...');
+    log('Preload script injected. Monitoring authentication state...');
+    let lastSentToken = null;
 
-    const checkForLoginAndSendToken = () => {
-        const zelidauth = localStorage.getItem('zelidauth');
-        const logoutButton = document.querySelector('a[href="#/logout"]') || Array.from(document.querySelectorAll('button')).find(btn => btn.innerText.trim().toLowerCase() === 'logout');
-
-        if (zelidauth && logoutButton) {
-            log('Login detected!');
+    const checkAuthState = () => {
+        const currentToken = localStorage.getItem('zelidauth');
+        
+        // Case 1: User has logged in (new token found)
+        if (currentToken && currentToken !== lastSentToken) {
+            log('Login detected or token changed.');
             logState('Post-Login State');
-            ipcRenderer.send('zelidauth-token', zelidauth);
-            log('Auth token sent to main process.');
-            return true; // Signal that we are done
+            ipcRenderer.send('auth-state-changed', { loggedIn: true, token: currentToken });
+            log('Auth state [LOGGED IN] sent to main process.');
+            lastSentToken = currentToken;
+        } 
+        // Case 2: User has logged out (token disappeared)
+        else if (!currentToken && lastSentToken !== null) {
+            log('Logout detected.');
+            logState('Post-Logout State');
+            ipcRenderer.send('auth-state-changed', { loggedIn: false, token: null });
+            log('Auth state [LOGGED OUT] sent to main process.');
+            lastSentToken = null;
         }
-        return false; // Not logged in yet
     };
 
-    // Set an interval to periodically check for the login state.
-    const monitorInterval = setInterval(() => {
-        if (checkForLoginAndSendToken()) {
-            // Once the token is found and sent, we can stop checking.
-            clearInterval(monitorInterval);
-            log('Monitor is now idle.');
-        }
-    }, 2000); // Check every 2 seconds
+    // Set an interval to periodically check for the auth state.
+    // This will run for the lifetime of the window.
+    setInterval(checkAuthState, 2000); // Check every 2 seconds
 
     window.addEventListener('load', () => {
         log('Page fully loaded. Performing initial state log.');
         logState('Initial State (After Load)');
+        // Perform an initial check as soon as the page loads
+        checkAuthState();
     });
 }
 
