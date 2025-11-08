@@ -1,9 +1,6 @@
 # Log files from testing
-DevTools_out.txt
-PowerShell_out.txt
 
 # API specification file
-fluxapi.json
 
 # Node.js dependencies
 node_modules/
