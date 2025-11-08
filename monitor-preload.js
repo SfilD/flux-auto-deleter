@@ -1,10 +1,23 @@
 const { ipcRenderer } = require('electron');
 
+// Extract arguments passed from main process
+let nodeId = 'unknown';
+let DEBUG = false; // Default to false
+
+const nodeIdArg = process.argv.find(arg => arg.startsWith('--node-id='));
+if (nodeIdArg) {
+    nodeId = nodeIdArg.split('=')[1];
+}
+
+const debugModeArg = process.argv.find(arg => arg.startsWith('--debug-mode='));
+if (debugModeArg) {
+    DEBUG = debugModeArg.split('=')[1] === 'true';
+}
+
 // --- Debug Utility ---
-const DEBUG = true;
 function log() {
   if (DEBUG) {
-    const args = ['[MONITOR]'];
+    const args = [`[MONITOR-${nodeId}]`];
     for (let i = 0; i < arguments.length; i++) {
       args.push(arguments[i]);
     }
@@ -15,7 +28,7 @@ function log() {
 function logState(context) {
     if (!DEBUG) return;
     console.log(`
------ [${context}] -----`);
+----- [${context} - ${nodeId}] -----`);
     console.log('Timestamp:', new Date().toISOString());
 
     console.log('\n--- localStorage ---');
@@ -44,7 +57,7 @@ function logState(context) {
 
     console.log('\n--- Cookies ---');
     console.log(document.cookie || '(empty)');
-    console.log(`----- End of [${context}] -----
+    console.log(`----- End of [${context} - ${nodeId}] -----
 `);
 }
 
@@ -62,7 +75,7 @@ function initializeMonitor() {
         if (currentToken && currentToken !== lastSentToken) {
             log('Login detected or token changed.');
             logState('Post-Login State');
-            ipcRenderer.send('auth-state-changed', { loggedIn: true, token: currentToken });
+            ipcRenderer.send('auth-state-changed', { nodeId: nodeId, loggedIn: true, token: currentToken });
             log('Auth state [LOGGED IN] sent to main process.');
             lastSentToken = currentToken;
         } 
@@ -70,7 +83,7 @@ function initializeMonitor() {
         else if (!currentToken && lastSentToken !== null) {
             log('Logout detected.');
             logState('Post-Logout State');
-            ipcRenderer.send('auth-state-changed', { loggedIn: false, token: null });
+            ipcRenderer.send('auth-state-changed', { nodeId: nodeId, loggedIn: false, token: null });
             log('Auth state [LOGGED OUT] sent to main process.');
             lastSentToken = null;
         }
