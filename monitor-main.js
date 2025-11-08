@@ -10,9 +10,11 @@ app.disableHardwareAcceleration();
 // --- Load Configuration from settings.ini ---
 const config = ini.parse(fs.readFileSync(path.join(__dirname, 'settings.ini'), 'utf-8'));
 
-const TARGET_APP_PREFIX = config.General.TargetAppPrefix;
+const TARGET_APP_PREFIXES = (config.General.TargetAppPrefixes || '').split(',').map(p => p.trim()).filter(p => p.length > 0);
 const AUTOMATION_INTERVAL = (parseInt(config.General.AutomationIntervalSeconds) || 60) * 1000;
-const DEBUG_MODE = config.General.Debug === 'true';
+const DEBUG_MODE = String(config.General.Debug).toLowerCase() === 'true';
+const WINDOW_WIDTH = parseInt(config.General.WindowWidth) || 1200;
+const WINDOW_HEIGHT = parseInt(config.General.WindowHeight) || 800;
 
 // --- Build Node Configuration from settings.ini ---
 const NODES = Object.keys(config)
@@ -34,8 +36,8 @@ const NODES = Object.keys(config)
 
 function createWindow(node) {
   const win = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: WINDOW_WIDTH,
+    height: WINDOW_HEIGHT,
     webPreferences: {
       preload: path.join(__dirname, 'monitor-preload.js'),
       // Pass node ID and debug flag to preload script
@@ -46,7 +48,9 @@ function createWindow(node) {
 
   win.setTitle(node.name);
   win.loadURL(node.uiUrl);
-  win.webContents.openDevTools();
+  if (DEBUG_MODE) {
+    win.webContents.openDevTools();
+  }
 
   // Store window reference in the node object
   node.window = win;
@@ -63,7 +67,9 @@ async function listRunningApps(node) {
             headers: { 'zelidauth': node.token }
         });
         const data = await response.json();
-        console.log(`[API-${node.id}] Running Apps:`, JSON.stringify(data, null, 2));
+        if (DEBUG_MODE) {
+          console.log(`[API-${node.id}] Running Apps:`, JSON.stringify(data, null, 2));
+        }
         return data;
     } catch (error) {
         console.error(`[API-${node.id}] Error listing running apps:`, error);
@@ -102,9 +108,10 @@ async function runAutomationCycle(node) {
         if (containerName.startsWith('/')) {
           containerName = containerName.substring(1);
         }
-        if (containerName.includes(TARGET_APP_PREFIX)) {
-          const mainAppName = containerName.substring(containerName.indexOf(TARGET_APP_PREFIX));
-          console.log(`[AUTOMATION-${node.id}] Found target app component: ${containerName}. Attempting to remove main app: ${mainAppName}...`);
+        const prefixMatch = TARGET_APP_PREFIXES.find(prefix => containerName.includes(prefix));
+        if (prefixMatch) {
+          const mainAppName = containerName.substring(containerName.lastIndexOf('_') + 1);
+          console.log(`[AUTOMATION-${node.id}] Found target app component: ${containerName} (prefix: ${prefixMatch}). Attempting to remove main app: ${mainAppName}...`);
           
           const removeResponse = await removeApp(node, mainAppName);
 
@@ -118,36 +125,41 @@ async function runAutomationCycle(node) {
               break; // Stop processing other apps this cycle, as token is bad
             }
           } else if (removeResponse && removeResponse.ok) {
-             const responseText = await removeResponse.text();
-             console.log(`[API-${node.id}] Raw remove response for ${mainAppName}:`, responseText);
-             try {
-                const jsonStrings = responseText.split('}{');
-                const parsedObjects = [];
+             if (DEBUG_MODE) {
+                const responseText = await removeResponse.text();
+                console.log(`[API-${node.id}] Raw remove response for ${mainAppName}:`, responseText);
+                try {
+                    const jsonStrings = responseText.split('}{');
+                    const parsedObjects = [];
 
-                jsonStrings.forEach((jsonStr, index) => {
-                    let currentJson = jsonStr;
-                    if (index > 0) { // All parts except the first need an opening brace
-                        currentJson = '{' + currentJson;
-                    }
-                    if (index < jsonStrings.length - 1) { // All parts except the last need a closing brace
-                        currentJson = currentJson + '}';
+                    jsonStrings.forEach((jsonStr, index) => {
+                        let currentJson = jsonStr;
+                        if (index > 0) { // All parts except the first need an opening brace
+                            currentJson = '{' + currentJson;
+                        }
+                        if (index < jsonStrings.length - 1) { // All parts except the last need a closing brace
+                            currentJson = currentJson + '}';
+                        }
+
+                        try {
+                            const data = JSON.parse(currentJson);
+                            parsedObjects.push(data);
+                            console.log(`[API-${node.id}] Parsed step ${parsedObjects.length} for ${mainAppName}:`, JSON.stringify(data, null, 2));
+                        } catch (parseError) {
+                            console.error(`[API-${node.id}] Failed to parse step ${index + 1} of remove response for ${mainAppName}. Error: ${parseError.message}. Part: ${currentJson}`);
+                        }
+                    });
+
+                    if (parsedObjects.length > 0) {
+                        console.log(`[API-${node.id}] Final status for ${mainAppName}:`, JSON.stringify(parsedObjects[parsedObjects.length - 1], null, 2));
                     }
 
-                    try {
-                        const data = JSON.parse(currentJson);
-                        parsedObjects.push(data);
-                        console.log(`[API-${node.id}] Parsed step ${parsedObjects.length} for ${mainAppName}:`, JSON.stringify(data, null, 2));
-                    } catch (parseError) {
-                        console.error(`[API-${node.id}] Failed to parse step ${index + 1} of remove response for ${mainAppName}. Error: ${parseError.message}. Part: ${currentJson}`);
-                    }
-                });
-
-                if (parsedObjects.length > 0) {
-                    console.log(`[API-${node.id}] Final status for ${mainAppName}:`, JSON.stringify(parsedObjects[parsedObjects.length - 1], null, 2));
+                } catch (e) {
+                    console.error(`[API-${node.id}] General error processing remove response for ${mainAppName}. Error: ${e.message}`);
                 }
-
-             } catch (e) {
-                console.error(`[API-${node.id}] General error processing remove response for ${mainAppName}. Error: ${e.message}`);
+             } else {
+                // Still need to consume the response body, even if not logging
+                await removeResponse.text();
              }
           }
         }
