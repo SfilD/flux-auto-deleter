@@ -2,21 +2,23 @@
 
 ## Project Overview
 
-This project is an Electron application designed to automate the management of applications running on a Flux instance. Its primary function is to monitor for and automatically delete specific applications that match a predefined prefix.
+This project is a configurable, multi-node Electron application designed to automate the management of applications running on Flux instances. Its primary function is to monitor multiple Flux nodes simultaneously and automatically delete applications that match a list of predefined prefixes.
 
-The application works by loading the Flux web interface in a browser window. A preload script (`monitor-preload.js`) is injected into the page to capture the user's authentication token (`zelidauth`) from `localStorage` upon login. This token is then sent to the main Electron process (`monitor-main.js`).
+The application's architecture is centered around a `settings.ini` file, which dictates the entire configuration. For each Flux node defined in the settings, the application spawns a separate Electron browser window, loading the respective Flux UI. A preload script (`monitor-preload.js`) is injected into each page to capture the user's authentication token (`zelidauth`) from `localStorage` upon login. This token is then sent via IPC to the main Electron process (`monitor-main.js`).
 
-Once authenticated, the main process enters a loop, periodically making API calls to the Flux node to:
+Once a token is received for a specific node, the main process initiates an automation loop for that node. It periodically makes API calls to the Flux node to:
 1.  List all running applications.
-2.  Identify applications whose names contain the target prefix, `StuckContainer`.
+2.  Identify applications whose names contain any of the target prefixes defined in `settings.ini`.
 3.  Automatically issue a command to remove any matching applications.
+
+The application is designed to be resilient, handling user login/logout events and continuing its monitoring task without requiring a restart. All major parameters, including target application prefixes, automation interval, window sizes, and debug mode, are configurable through the `settings.ini` file.
 
 ## Key Files
 
-*   `monitor-main.js`: The core of the application. It manages the Electron window, handles IPC communication with the preload script, and contains the main automation logic for checking and deleting Flux applications.
-*   `monitor-preload.js`: A script that runs in the context of the Flux web interface. It is responsible for detecting when a user has logged in, extracting the `zelidauth` authentication token, and passing it securely to the `monitor-main.js` process.
-*   `package.json`: Defines the project's metadata, dependencies (`electron`, `node-fetch`), and scripts. The key script is `start`, which executes the application.
-*   `index.html`: A simple HTML file that appears to be a placeholder or a remnant of a previous development stage. The application's primary interface is the live Flux web UI, which is loaded directly.
+*   `settings.ini`: The central configuration file. It defines the general behavior (target prefixes, automation interval, debug mode) and the list of Flux nodes to monitor, each with its own name and API/UI URLs.
+*   `monitor-main.js`: The core of the application. It reads the `settings.ini` file, creates and manages the browser windows for each node, handles IPC communication, and contains the main automation logic for checking and deleting Flux applications.
+*   `monitor-preload.js`: A script that runs in the context of each Flux web interface. It is responsible for detecting when a user has logged in, extracting the `zelidauth` authentication token, and passing it securely to the `monitor-main.js` process.
+*   `package.json`: Defines the project's metadata, dependencies (`electron`, `node-fetch`, `ini`), and the main `start` script.
 
 ## Building and Running
 
@@ -31,6 +33,12 @@ Once authenticated, the main process enters a loop, periodically making API call
     npm install
     ```
 
+### Configuration
+
+1.  Edit the `settings.ini` file to configure the application:
+    *   Under `[General]`, set the `TargetAppPrefixes` (comma-separated), `AutomationIntervalSeconds`, and `Debug` mode.
+    *   Add or modify `[NodeX]` sections for each Flux node you want to monitor.
+
 ### Running the Application
 
 To run the application, execute the following command in the project root:
@@ -39,18 +47,11 @@ To run the application, execute the following command in the project root:
 npm start
 ```
 
-This will launch the Electron window and load the Flux login page. You must log in to the Flux web interface to initiate the automated monitoring and deletion process.
+This will launch an Electron window for each configured node. You must log in to the Flux web interface in each window to initiate the automated monitoring and deletion process for that node.
 
-### Development Workflow
+## Development Workflow
 
 - **Development Environment:** Code is written and edited within the WSL (Windows Subsystem for Linux) environment, specifically the **Ubuntu-22.04** distribution.
 - **Testing & Execution Environment:** For testing and final execution, the project files are copied to a **Windows 10 Pro** VMware virtual machine.
 - **Working Directory on Windows:** The project is located at `C:\Projects\flux-auto-deleter\` on the Windows VM.
 - **Critical Constraint:** All runtime and testing commands (e.g., `npm start`) **must be executed within the Windows 10 Pro environment**, not in WSL. This context is crucial for any file operations, command executions, or debugging tasks.
-
-## Development Conventions
-
-*   **Authentication:** The application relies on capturing the `zelidauth` token from the Flux web interface's `localStorage`.
-*   **Targeting:** The automation logic specifically targets applications where the container name includes the prefix `StuckContainer`.
-*   **API Interaction:** The application communicates with the Flux API (hardcoded to `http://1.2.3.4:16127`) for listing and removing applications.
-*   **Logging:** The preload script includes a `DEBUG` flag, which, when enabled, provides detailed logs in the developer console regarding the state of `localStorage`, `sessionStorage`, and cookies.
