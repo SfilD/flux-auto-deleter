@@ -27,7 +27,7 @@ function log() {
     const timestamp = `[${day}.${month}.${year} ${hours}:${minutes}]`;
     const prefix = `[MONITOR-${nodeId}]`;
     
-    const args = [prefix + timestamp];
+    const args = [timestamp + prefix];
     for (let i = 0; i < arguments.length; i++) {
       args.push(arguments[i]);
     }
