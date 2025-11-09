@@ -46,9 +46,9 @@ function log(prefix, ...args) {
   
   // Use console.error for prefixes containing 'error'
   if (prefix.toLowerCase().includes('error')) {
-    console.error(`[${prefix}]${timestamp}`, ...args);
+    console.error(`${timestamp}[${prefix}]`, ...args);
   } else {
-    console.log(`[${prefix}]${timestamp}`, ...args);
+    console.log(`${timestamp}[${prefix}]`, ...args);
   }
 }
 
