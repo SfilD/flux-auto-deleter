@@ -72,7 +72,22 @@ function logState(context) {
 
 // --- Main Logic ---
 
+function hideSideMenu() {
+  try {
+    const style = document.createElement('style');
+    style.type = 'text/css';
+    // The selector for the main navigation container, based on user-provided HTML.
+    const menuSelector = '.main-menu';
+    style.innerHTML = `${menuSelector} { display: none !important; }`;
+    document.head.appendChild(style);
+    log('Injected CSS to hide side menu.');
+  } catch (e) {
+    log('Error injecting CSS to hide side menu:', e.message);
+  }
+}
+
 function initializeMonitor() {
+    hideSideMenu();
     log('Preload script injected. Monitoring authentication state...');
     let lastSentToken = null;
 
