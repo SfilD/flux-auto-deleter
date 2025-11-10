@@ -10,7 +10,7 @@ app.disableHardwareAcceleration();
 // --- Load Configuration from settings.ini ---
 const config = ini.parse(fs.readFileSync(path.join(__dirname, 'settings.ini'), 'utf-8'));
 
-const SCAN_IP = config.General.ScanIP;
+const SCAN_IPS = (config.General.ScanIPs || '').split(',').map(ip => ip.trim()).filter(ip => ip);
 const TARGET_APP_PREFIXES = (config.General.TargetAppPrefixes || '').split(',').map(p => p.trim()).filter(p => p.length > 0);
 const AUTOMATION_INTERVAL = (parseInt(config.General.AutomationIntervalSeconds) || 60) * 1000;
 const DEBUG_MODE = String(config.General.Debug).toLowerCase() === 'true';
@@ -42,33 +42,20 @@ function log(prefix, ...args) {
   }
 }
 
-/**
- * Checks if a Flux API is responsive at a given URL.
- * @param {string} apiUrl The API URL to check.
- * @returns {Promise<boolean>} True if the node API is responsive, false otherwise.
- */
 async function checkFluxNodeExistence(apiUrl) {
     try {
         const response = await fetch(`${apiUrl}/apps/listrunningapps`, {
             method: 'GET',
             timeout: 10000 // 10-second timeout for slower nodes
         });
-        // We consider any response (even 401 Unauthorized) as proof of existence.
-        // We only care about catching network errors.
         return true;
     } catch (error) {
-        // Network errors mean the node is not there or not reachable.
         return false;
     }
 }
 
-/**
- * Scans the configured IP for active Flux nodes based on the port scheme.
- * @param {string} ip The IP address to scan.
- * @returns {Promise<Array>} A list of discovered node objects.
- */
-async function discoverNodes(ip) {
-    log('DISCOVERY', `Starting node discovery on IP: ${ip}`);
+async function discoverNodesOnIp(ip, ipPrefix) {
+    log('DISCOVERY', `Scanning IP: ${ip} with prefix ${ipPrefix}`);
     const discoveredNodes = [];
     const baseUiPort = 16126;
     const maxNodesPerIp = 8;
@@ -83,10 +70,10 @@ async function discoverNodes(ip) {
 
         if (exists) {
             const nodeNumber = i + 1;
-            const paddedNumber = String(nodeNumber).padStart(2, '0');
+            const paddedNodeNumber = String(nodeNumber).padStart(2, '0');
             const node = {
-                id: `node${paddedNumber}`,
-                name: `Node${paddedNumber}`,
+                id: `${ipPrefix}-node${paddedNodeNumber}`,
+                name: `${ipPrefix}-Node${paddedNodeNumber}`,
                 uiUrl: `http://${ip}:${uiPort}`,
                 apiUrl: apiUrl,
                 view: null,
@@ -97,10 +84,21 @@ async function discoverNodes(ip) {
             log('DISCOVERY', `Found active node: ${node.name} at ${node.apiUrl}`);
         }
     }
-    log('DISCOVERY', `Discovery complete. Found ${discoveredNodes.length} active nodes.`);
     return discoveredNodes;
 }
 
+async function discoverAllNodes(ips) {
+    log('DISCOVERY', 'Starting node discovery across all IPs...');
+    let allFoundNodes = [];
+    for (let i = 0; i < ips.length; i++) {
+        const ip = ips[i];
+        const ipPrefix = `IP${String(i + 1).padStart(2, '0')}`;
+        const nodesOnThisIp = await discoverNodesOnIp(ip, ipPrefix);
+        allFoundNodes = allFoundNodes.concat(nodesOnThisIp);
+    }
+    NODES = allFoundNodes; // Update the global NODES array
+    log('DISCOVERY', `Total nodes found across all IPs: ${NODES.length}`);
+}
 
 async function listRunningApps(node) {
     if (!node.token) {
@@ -225,11 +223,10 @@ async function runAutomationCycle(node) {
 }
 
 async function createApp() {
-    // Discover nodes before creating any windows
-    NODES = await discoverNodes(SCAN_IP);
+    await discoverAllNodes(SCAN_IPS);
 
     if (NODES.length === 0) {
-        log('MAIN-Error', 'No active Flux nodes found on the specified IP. Shutting down.');
+        log('MAIN-Error', 'No active Flux nodes found on any specified IPs. Shutting down.');
         app.quit();
         return;
     }
