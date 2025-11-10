@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-This project is a configurable, single-window, multi-session Electron application designed to automate the management of applications running on Flux instances. Its core feature is the **automatic discovery** of nodes. On startup, the application scans a specified IP address for active Flux nodes based on a known port scheme.
+This project is a configurable, single-window, multi-session Electron application designed to automate the management of applications running on Flux instances. Its core feature is the **automatic discovery of nodes across multiple IP addresses**. On startup, the application scans a comma-separated list of specified IP addresses for active Flux nodes based on a known port scheme.
 
-For each discovered node, the application creates a tab within its single window. Each tab's content is rendered in a separate `BrowserView` with an isolated session (`partition`), ensuring that logins and cookies are kept separate for each node.
+For each discovered node, the application creates a tab within its single window. Each tab's content is rendered in a separate `BrowserView` with an isolated session (`partition`), ensuring that logins and cookies are kept separate for each node. Node names are dynamically generated to be unique across all IPs (e.g., `IP01-Node01`, `IP02-Node01`).
 
 A preload script (`monitor-preload.js`) is injected into each `BrowserView` to capture the user's authentication token (`zelidauth`) from `localStorage` upon login. This token is then sent via IPC to the main Electron process (`monitor-main.js`).
 
@@ -15,8 +15,8 @@ Once a token is received for a specific node, the main process initiates an auto
 
 ## Key Files
 
-*   `settings.ini`: The central configuration file. It defines the `ScanIP` for the auto-discovery process, as well as general behavior like target prefixes and automation intervals.
-*   `monitor-main.js`: The core of the application. It performs the node discovery on startup, creates the main window and all `BrowserView`s, handles IPC communication, and contains the main automation logic.
+*   `settings.ini`: The central configuration file. It defines the `ScanIPs` (comma-separated) for the auto-discovery process, as well as general behavior like target prefixes and automation intervals.
+*   `monitor-main.js`: The core of the application. It performs the multi-IP node discovery on startup, creates the main window and all `BrowserView`s, handles IPC communication, and contains the main automation logic.
 *   `monitor-preload.js`: A script that runs in the context of each `BrowserView`. It is responsible for detecting login/logout events, hiding the sidebar menu, and passing the `zelidauth` token to the main process.
 *   `shell.html`, `shell.css`, `shell-renderer.js`: These files constitute the application's main UI shell, providing the tabbed interface for navigating between discovered nodes.
 *   `package.json`: Defines the project's metadata, dependencies, and the `start` script.
@@ -37,7 +37,7 @@ Once a token is received for a specific node, the main process initiates an auto
 ### Configuration
 
 1.  Edit the `settings.ini` file to configure the application.
-    *   Under `[General]`, set the `ScanIP` to the IP address of the machine hosting your Flux nodes.
+    *   Under `[General]`, set the `ScanIPs` to a single IP or a comma-separated list of IP addresses to scan.
     *   Configure other parameters like `TargetAppPrefixes` and `AutomationIntervalSeconds` as needed.
 
 ### Running the Application
@@ -48,7 +48,7 @@ To run the application, execute the following command in the project root:
 npm start
 ```
 
-This will launch a single Electron window and begin scanning for active nodes. Tabs will be created for each discovered node. You must log in to the Flux web interface in each tab to initiate the automated monitoring for that node.
+This will launch a single Electron window and begin scanning for active nodes on the configured IPs. Tabs will be created for each discovered node. You must log in to the Flux web interface in each tab to initiate the automated monitoring for that node.
 
 ## Development Workflow
 
@@ -61,7 +61,7 @@ This will launch a single Electron window and begin scanning for active nodes. T
 
 Log messages are formatted as `[DD.MM.YYYY HH:MM][PREFIX] Message...`
 - **[DISCOVERY]**: Events related to the initial node scanning process.
-- **[MAIN-nodeID]**: High-level events related to application control.
-- **[AUTO-nodeID]**: Events related to the automation cycle.
-- **[API-nodeID]**: Events related to direct API calls.
-- **[MONITOR-nodeID]**: Events from the preload script.
+- **[MAIN-IP01-node01]**: High-level events related to application control.
+- **[AUTO-IP01-node01]**: Events related to the automation cycle.
+- **[API-IP01-node01]**: Events related to direct API calls.
+- **[MONITOR-IP01-node01]**: Events from the preload script.
