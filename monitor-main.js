@@ -210,9 +210,12 @@ function createApp() {
         mainWindow.webContents.openDevTools({ mode: 'detach' });
     }
 
-    mainWindow.on('ready-to-show', () => {
-        // Send the list of nodes to the shell renderer to build the tabs
-        mainWindow.webContents.send('initialize-tabs', NODES.map(n => ({ id: n.id, name: n.name })));
+    mainWindow.webContents.on('did-finish-load', () => {
+        log('MAIN', 'Shell renderer finished loading. Sending tab info.');
+        mainWindow.webContents.send('initialize-tabs', { 
+            nodes: NODES.map(n => ({ id: n.id, name: n.name })), 
+            activeId: activeViewId 
+        });
     });
 
     // Create a BrowserView for each node
@@ -240,6 +243,12 @@ function createApp() {
         // Store the view reference
         node.view = view;
     });
+
+    // Explicitly set the first node's view as the top one after all views are created
+    if (NODES.length > 0) {
+        mainWindow.setTopBrowserView(NODES[0].view);
+        activeViewId = NODES[0].id;
+    }
 }
 
 // --- App Lifecycle ---

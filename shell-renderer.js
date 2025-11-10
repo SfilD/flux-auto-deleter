@@ -3,15 +3,21 @@ const { ipcRenderer } = require('electron');
 const tabsContainer = document.getElementById('tabs-container');
 let activeTabId = null;
 
-// Listen for the list of nodes from the main process
-ipcRenderer.on('initialize-tabs', (event, nodes) => {
-    // Clear existing tabs to prevent duplication on hot-reload
+ipcRenderer.on('initialize-tabs', (event, data) => {
+    const { nodes, activeId } = data;
+    // Clear existing tabs to prevent duplication
     tabsContainer.innerHTML = '';
-    nodes.forEach((node, index) => {
+    
+    nodes.forEach((node) => {
         const tab = document.createElement('div');
         tab.id = `tab-${node.id}`;
         tab.className = 'tab';
         tab.textContent = node.name;
+
+        // Set the active class based on the data from the main process
+        if (node.id === activeId) {
+            tab.classList.add('active');
+        }
         
         tab.addEventListener('click', () => {
             if (activeTabId === node.id) return;
@@ -26,12 +32,8 @@ ipcRenderer.on('initialize-tabs', (event, nodes) => {
         });
 
         tabsContainer.appendChild(tab);
-
-        // Activate the first tab by default
-        if (index === 0) {
-            tab.classList.add('active'); // Add active class directly
-            activeTabId = node.id;       // Set activeTabId
-            ipcRenderer.send('switch-view', node.id); // Send initial switch view
-        }
     });
+
+    // Set the renderer's local activeTabId state
+    activeTabId = activeId;
 });
