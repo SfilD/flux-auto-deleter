@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, BrowserView, ipcMain } = require('electron');
 const path = require('path');
 const fetch = require('node-fetch');
 const fs = require('fs');
@@ -15,18 +15,25 @@ const AUTOMATION_INTERVAL = (parseInt(config.General.AutomationIntervalSeconds) 
 const DEBUG_MODE = String(config.General.Debug).toLowerCase() === 'true';
 const WINDOW_WIDTH = parseInt(config.General.WindowWidth) || 1200;
 const WINDOW_HEIGHT = parseInt(config.General.WindowHeight) || 800;
+const TABS_HEIGHT = 41; // Height of the tab bar
+
+// --- Global State ---
+let mainWindow = null;
+let activeViewId = null;
 
 // --- Build Node Configuration from settings.ini ---
 const NODES = Object.keys(config)
   .filter(key => key.startsWith('Node'))
   .map(key => {
     const nodeConfig = config[key];
+    const number = key.replace('Node', ''); // "1", "2", "10" etc.
+    const paddedNumber = number.padStart(2, '0'); // "01", "02", "10"
     return {
-      id: key.toLowerCase(),
+      id: `node${paddedNumber}`, // "node01", "node02", "node10"
       name: nodeConfig.Name,
       uiUrl: nodeConfig.UI_URL,
       apiUrl: nodeConfig.API_URL,
-      window: null,
+      view: null, // Will hold the BrowserView
       token: null,
       automationIntervalId: null
     };
@@ -50,28 +57,6 @@ function log(prefix, ...args) {
   } else {
     console.log(`${timestamp}[${prefix}]`, ...args);
   }
-}
-
-function createWindow(node) {
-  const win = new BrowserWindow({
-    width: WINDOW_WIDTH,
-    height: WINDOW_HEIGHT,
-    webPreferences: {
-      preload: path.join(__dirname, 'monitor-preload.js'),
-      // Pass node ID and debug flag to preload script
-      additionalArguments: [`--node-id=${node.id}`, `--debug-mode=${DEBUG_MODE}`],
-      sandbox: false
-    }
-  });
-
-  win.setTitle(node.name);
-  win.loadURL(node.uiUrl);
-  if (DEBUG_MODE) {
-    win.webContents.openDevTools();
-  }
-
-  // Store window reference in the node object
-  node.window = win;
 }
 
 async function listRunningApps(node) {
@@ -210,46 +195,97 @@ async function runAutomationCycle(node) {
   }
 }
 
+function createApp() {
+    mainWindow = new BrowserWindow({
+        width: WINDOW_WIDTH,
+        height: WINDOW_HEIGHT,
+        webPreferences: {
+            nodeIntegration: true, // Enable Node.js integration in the renderer
+            contextIsolation: false // Disable context isolation
+        }
+    });
+
+    mainWindow.loadFile('shell.html');
+    if (DEBUG_MODE) {
+        mainWindow.webContents.openDevTools({ mode: 'detach' });
+    }
+
+    mainWindow.on('ready-to-show', () => {
+        // Send the list of nodes to the shell renderer to build the tabs
+        mainWindow.webContents.send('initialize-tabs', NODES.map(n => ({ id: n.id, name: n.name })));
+    });
+
+    // Create a BrowserView for each node
+    NODES.forEach(node => {
+        const view = new BrowserView({
+            webPreferences: {
+                preload: path.join(__dirname, 'monitor-preload.js'),
+                // Use a persistent partition to isolate sessions
+                partition: `persist:${node.id}`,
+                additionalArguments: [`--node-id=${node.id}`, `--debug-mode=${DEBUG_MODE}`],
+                sandbox: false
+            }
+        });
+        
+        mainWindow.addBrowserView(view);
+        view.setBounds({ x: 0, y: TABS_HEIGHT, width: WINDOW_WIDTH, height: WINDOW_HEIGHT - TABS_HEIGHT });
+        view.setAutoResize({ width: true, height: true });
+        view.webContents.loadURL(node.uiUrl);
+
+        // Open DevTools for the view if in debug mode
+        if (DEBUG_MODE) {
+            view.webContents.openDevTools({ mode: 'detach' });
+        }
+
+        // Store the view reference
+        node.view = view;
+    });
+}
+
 // --- App Lifecycle ---
 
-app.whenReady().then(() => {
-  // Create a window for each configured node
-  NODES.forEach(node => createWindow(node));
+app.whenReady().then(createApp);
 
-  ipcMain.on('auth-state-changed', (event, authState) => {
+ipcMain.on('switch-view', (event, nodeId) => {
+    const node = NODES.find(n => n.id === nodeId);
+    if (node) {
+        mainWindow.setTopBrowserView(node.view);
+        activeViewId = nodeId;
+    }
+});
+
+ipcMain.on('auth-state-changed', (event, authState) => {
     const node = NODES.find(n => n.id === authState.nodeId);
     if (!node) return;
 
     if (authState.loggedIn) {
-      log(`MAIN-${node.id}`, 'Received LOGIN notification.');
-      node.token = authState.token;
-      if (!node.automationIntervalId) {
-        log(`MAIN-${node.id}`, 'Starting automation in 5 seconds...');
-        // Add a delay to prevent a race condition on new session validation
-        setTimeout(() => {
-          log(`MAIN-${node.id}`, 'Initial automation cycle starting now.');
-          runAutomationCycle(node); // Run immediately after delay
-          node.automationIntervalId = setInterval(() => runAutomationCycle(node), AUTOMATION_INTERVAL); // Then run at configured interval
-        }, 5000); // 5-second delay
-      }
+        log(`MAIN-${node.id}`, 'Received LOGIN notification.');
+        node.token = authState.token;
+        if (!node.automationIntervalId) {
+            log(`MAIN-${node.id}`, 'Starting automation in 5 seconds...');
+            setTimeout(() => {
+                log(`MAIN-${node.id}`, 'Initial automation cycle starting now.');
+                runAutomationCycle(node);
+                node.automationIntervalId = setInterval(() => runAutomationCycle(node), AUTOMATION_INTERVAL);
+            }, 5000);
+        }
     } else {
-      log(`MAIN-${node.id}`, 'Received LOGOUT notification.');
-      node.token = null;
-      if (node.automationIntervalId) {
-        log(`MAIN-${node.id}`, 'Stopping automation...');
-        clearInterval(node.automationIntervalId);
-        node.automationIntervalId = null;
-      }
+        log(`MAIN-${node.id}`, 'Received LOGOUT notification.');
+        node.token = null;
+        if (node.automationIntervalId) {
+            log(`MAIN-${node.id}`, 'Stopping automation...');
+            clearInterval(node.automationIntervalId);
+            node.automationIntervalId = null;
+        }
     }
-  });
+});
 
-  app.on('activate', function () {
+app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) {
-      NODES.forEach(node => createWindow(node));
+        createApp();
     }
-  });
 });
 
 app.on('window-all-closed', function () {
-  app.quit();
+    app.quit();
 });
