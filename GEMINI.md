@@ -65,3 +65,4 @@ Log messages are formatted as `[DD.MM.YYYY HH:MM][PREFIX] Message...`
 - **[AUTO-IP01-node01]**: Events related to the automation cycle.
 - **[API-IP01-node01]**: Events related to direct API calls.
 - **[MONITOR-IP01-node01]**: Events from the preload script.
+- **[CACHE]**: Events related to clearing the session cache on startup.
