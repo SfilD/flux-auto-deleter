@@ -1,8 +1,11 @@
-const { app, BrowserWindow, BrowserView, ipcMain } = require('electron');
+const { app, BrowserWindow, BrowserView, ipcMain, session } = require('electron');
 const path = require('path');
 const fetch = require('node-fetch');
 const fs = require('fs');
 const ini = require('ini');
+
+// Suppress security warnings for local development (loading from http)
+process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 
 // Disable hardware acceleration to prevent rendering issues
 app.disableHardwareAcceleration();
@@ -98,6 +101,24 @@ async function discoverAllNodes(ips) {
     }
     NODES = allFoundNodes; // Update the global NODES array
     log('DISCOVERY', `Total nodes found across all IPs: ${NODES.length}`);
+}
+
+async function clearAllCaches() {
+    log('CACHE', 'Starting to clear all session caches...');
+    for (const node of NODES) {
+        try {
+            const partition = `persist:${node.id}`;
+            const ses = session.fromPartition(partition);
+            // Clear specific storage types to avoid wiping login data (cookies, localStorage)
+            await ses.clearStorageData({
+                storages: ['appcache', 'cachestorage', 'shadercache']
+            });
+            log('CACHE', `Successfully cleared cache for partition: ${partition}`);
+        } catch (error) {
+            log('CACHE-Error', `Failed to clear cache for node ${node.id}:`, error);
+        }
+    }
+    log('CACHE', 'Finished clearing all session caches.');
 }
 
 async function listRunningApps(node) {
@@ -224,6 +245,7 @@ async function runAutomationCycle(node) {
 
 async function createApp() {
     await discoverAllNodes(SCAN_IPS);
+    await clearAllCaches();
 
     if (NODES.length === 0) {
         log('MAIN-Error', 'No active Flux nodes found on any specified IPs. Shutting down.');
