@@ -19,7 +19,7 @@ const AUTOMATION_INTERVAL = (parseInt(config.General.AutomationIntervalSeconds) 
 const DEBUG_MODE = String(config.General.Debug).toLowerCase() === 'true';
 const WINDOW_WIDTH = parseInt(config.General.WindowWidth) || 1200;
 const WINDOW_HEIGHT = parseInt(config.General.WindowHeight) || 800;
-const TABS_HEIGHT = 41; // Height of the tab bar
+const TABS_WIDTH = 180; // Width of the vertical tab bar
 
 // --- Global State ---
 let mainWindow = null;
@@ -288,7 +288,7 @@ async function createApp() {
         });
         
         mainWindow.addBrowserView(view);
-        view.setBounds({ x: 0, y: TABS_HEIGHT, width: WINDOW_WIDTH, height: WINDOW_HEIGHT - TABS_HEIGHT });
+        view.setBounds({ x: TABS_WIDTH, y: 0, width: WINDOW_WIDTH - TABS_WIDTH, height: WINDOW_HEIGHT });
         view.setAutoResize({ width: true, height: true });
         view.webContents.loadURL(node.uiUrl);
 
