@@ -17,7 +17,7 @@ body, html {
 .tabs {
     display: flex;
     flex-direction: column; /* Changed to column */
-    width: 180px; /* Added fixed width */
+    width: 220px; /* Added fixed width */
     flex-shrink: 0;
     background-color: #1a202c;
     border-right: 1px solid #4a5568; /* Changed from border-bottom */
@@ -28,6 +28,7 @@ body, html {
 .tab {
     padding: 7px 15px; /* Adjusted padding */
     cursor: pointer;
+    font-size: 12px;
     border: 1px solid transparent;
     border-right: none; /* De-emphasize right border */
     margin-bottom: 4px; /* Changed from margin-right */

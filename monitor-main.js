@@ -19,7 +19,7 @@ const AUTOMATION_INTERVAL = (parseInt(config.General.AutomationIntervalSeconds) 
 const DEBUG_MODE = String(config.General.Debug).toLowerCase() === 'true';
 const WINDOW_WIDTH = parseInt(config.General.WindowWidth) || 1200;
 const WINDOW_HEIGHT = parseInt(config.General.WindowHeight) || 800;
-const TABS_WIDTH = 180; // Width of the vertical tab bar
+const TABS_WIDTH = 220; // Width of the vertical tab bar
 
 // --- Global State ---
 let mainWindow = null;
@@ -258,11 +258,15 @@ async function createApp() {
     mainWindow = new BrowserWindow({
         width: WINDOW_WIDTH,
         height: WINDOW_HEIGHT,
+        resizable: false,
+        maximizable: false,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false
         }
     });
+
+    mainWindow.setMenu(null);
 
     mainWindow.loadFile('shell.html');
     if (DEBUG_MODE) {
@@ -272,7 +276,7 @@ async function createApp() {
     mainWindow.webContents.on('did-finish-load', () => {
         log('MAIN', 'Shell renderer finished loading. Sending tab info.');
         mainWindow.webContents.send('initialize-tabs', { 
-            nodes: NODES.map(n => ({ id: n.id, name: n.name })), 
+            nodes: NODES.map(n => ({ id: n.id, name: n.name, uiUrl: n.uiUrl })), 
             activeId: activeViewId 
         });
     });

@@ -78,9 +78,19 @@ function hideSideMenu() {
     style.type = 'text/css';
     // The selector for the main navigation container, based on user-provided HTML.
     const menuSelector = '.main-menu';
-    style.innerHTML = `${menuSelector} { display: none !important; }`;
+    const menuToggleSelector = '.feather-menu';
+    const bookmarkSelector = '.bookmark-wrapper';
+    const themeSwitchSelector = '.feather-sun';
+    const finalIconSelector = '[data-v-2ed358b2]';
+    style.innerHTML = `
+      ${menuSelector} { display: none !important; }
+      ${menuToggleSelector} { display: none !important; }
+      ${bookmarkSelector} { display: none !important; }
+      ${themeSwitchSelector} { display: none !important; }
+      ${finalIconSelector} { display: none !important; }
+    `;
     document.head.appendChild(style);
-    log('Injected CSS to hide side menu.');
+    log('Injected CSS to hide side menu, toggle button, bookmark wrapper, and theme switcher.');
   } catch (e) {
     log('Error injecting CSS to hide side menu:', e.message);
   }

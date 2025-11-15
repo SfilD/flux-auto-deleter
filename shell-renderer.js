@@ -12,7 +12,9 @@ ipcRenderer.on('initialize-tabs', (event, data) => {
         const tab = document.createElement('div');
         tab.id = `tab-${node.id}`;
         tab.className = 'tab';
-        tab.textContent = node.name;
+        
+        const address = node.uiUrl.replace('http://', '');
+        tab.textContent = `${node.name} [${address}]`;
 
         // Set the active class based on the data from the main process
         if (node.id === activeId) {
