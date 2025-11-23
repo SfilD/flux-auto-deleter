@@ -266,13 +266,48 @@ function createMainWindow() {
     }
 }
 
+async function isTokenValid(node) {
+    if (!node.token) {
+        logDebug(`AUTH-${node.id}`, 'Token is null or empty, validation automatically fails.');
+        return false;
+    }
+
+    try {
+        // We use a lightweight, authenticated endpoint to validate the token.
+        const response = await fetch(`${node.apiUrl}/fluxshare/stats`, {
+            method: 'GET',
+            headers: { 'zelidauth': node.token },
+            timeout: 10000 // 10-second timeout
+        });
+
+        if (response.status === 401 || response.status === 403) {
+            log(`AUTH-${node.id}`, `Authentication failed with status ${response.status}. Token is invalid.`);
+            return false;
+        }
+
+        // For other non-OK statuses, we assume it's a temporary server/network issue.
+        // We don't invalidate the token, as the endpoint might be down. The next cycle will re-validate.
+        if (!response.ok) {
+            log(`AUTH-${node.id}`, `Token validation check responded with ${response.status}. Treating as a temporary issue.`);
+            return true;
+        }
+
+        logDebug(`AUTH-${node.id}`, 'Token validation successful.');
+        return true;
+    } catch (error) {
+        log(`AUTH-${node.id}-Error`, 'A network error occurred during token validation:', error.message);
+        // On network errors, we also assume it's a temporary problem and don't invalidate the token.
+        return true;
+    }
+}
+
 async function listRunningApps(node) {
     if (!node.token) {
         log(`API-${node.id}`, 'Error: Not logged in. Token is missing.');
         return null;
     }
     try {
-        const response = await fetch(`${node.apiUrl}/apps/listrunningapps`, { method: 'GET', headers: { 'zelidauth': node.token } });
+        const response = await fetch(`${node.apiUrl}/apps/listrunningapps`, { method: 'GET' });
         const data = await response.json();
         logDebug(`API-${node.id}`, 'Running Apps:', data);
         return data;
@@ -297,59 +332,78 @@ async function removeApp(node, appName) {
 
 async function runAutomationCycle(node) {
     log(`AUTO-${node.id}`, 'Cycle started.');
-    const appsResponse = await listRunningApps(node);
 
-    if (appsResponse && appsResponse.status === 'success' && appsResponse.data) {
-        // --- Happy Path: API call succeeded ---
-        const count = appsResponse.data.length;
-        if (count === 0) {
-            log(`AUTO-${node.id}`, 'Found 0 running application.');
-        } else {
-            log(`AUTO-${node.id}`, `Found ${count === 1 ? '1 running application' : `${count} running applications`}:`);
-        }
-
-        const appNames = appsResponse.data.map(app => {
-            if (app.Names && app.Names.length > 0) {
-                const name = app.Names[0].startsWith('/') ? app.Names[0].substring(1) : app.Names[0];
-                const isTarget = TARGET_APP_PREFIXES.some(prefix => name.includes(prefix));
-                return { name, isTarget };
-            }
-            return null;
-        }).filter(name => name !== null);
-
-        appNames.forEach(app => {
-            const color = app.isTarget ? 'RED' : 'GREEN';
-            log(`AUTO-${node.id}`, `  - @@${color}@@${app.name}##`);
-        });
-
-        logDebug(`AUTO-${node.id}`, 'Raw application data:', appsResponse.data);
-
-        for (const app of appNames) {
-            if (app.isTarget) {
-                const mainAppName = app.name.substring(app.name.lastIndexOf('_') + 1);
-                log(`AUTO-${node.id}`, `Found target: ${app.name}. Removing main app: ${mainAppName}...`);
-
-                const removeResponse = await removeApp(node, mainAppName);
-                if (removeResponse && !removeResponse.ok && (removeResponse.status === 401 || removeResponse.status === 403)) {
-                    log(`MAIN-${node.id}`, 'Authentication failed during removeApp. Token is invalid. Pausing automation.');
-                    clearInterval(node.automationIntervalId);
-                    node.automationIntervalId = null;
-                    node.token = null;
-                    break; // Exit the loop
-                }
-            }
-        }
-    } else {
-        // --- Unhappy Path: API call failed or returned status: "error" ---
-        if (node.token) {
-            // If we think we have a token, but the API fails, the token is likely expired.
-            log(`MAIN-${node.id}`, 'Authentication failed (API status not success). Token is likely invalid. Pausing automation.');
+    // 1. First, ensure we have a token and it is still valid.
+    if (!node.token) {
+        log(`AUTO-${node.id}`, 'Automation cycle skipped: Not logged in.');
+        // This should ideally not happen if the interval is cleared on logout, but as a safeguard:
+        if (node.automationIntervalId) {
             clearInterval(node.automationIntervalId);
             node.automationIntervalId = null;
-            node.token = null;
-        } else {
-            // This case should not be reached often in a running cycle, but good for safety.
-            log(`AUTO-${node.id}`, 'Could not retrieve running apps (not logged in).');
+        }
+        return;
+    }
+
+    const tokenIsValid = await isTokenValid(node);
+    if (!tokenIsValid) {
+        log(`MAIN-${node.id}`, 'Token is invalid. Pausing automation.');
+        clearInterval(node.automationIntervalId);
+        node.automationIntervalId = null;
+        node.token = null; // Important: clear the invalid token
+        return;
+    }
+
+    // 2. Now, get the list of running apps. This is a public endpoint.
+    const appsResponse = await listRunningApps(node);
+
+    // 3. Handle the response for listRunningApps.
+    if (!appsResponse || appsResponse.status !== 'success' || !appsResponse.data) {
+        // Treat this as a temporary network/API error, not an auth failure.
+        // The token was already validated. We just log it and wait for the next cycle.
+        log(`API-${node.id}-Error`, 'Could not retrieve running apps (API error or node offline). Will retry next cycle.');
+        return;
+    }
+    
+    // --- Happy Path: API call succeeded ---
+    const count = appsResponse.data.length;
+    if (count === 0) {
+        log(`AUTO-${node.id}`, 'Found 0 running application.');
+    } else {
+        log(`AUTO-${node.id}`, `Found ${count === 1 ? '1 running application' : `${count} running applications`}:`);
+    }
+
+    const appNames = appsResponse.data.map(app => {
+        if (app.Names && app.Names.length > 0) {
+            const name = app.Names[0].startsWith('/') ? app.Names[0].substring(1) : app.Names[0];
+            const isTarget = TARGET_APP_PREFIXES.some(prefix => name.includes(prefix));
+            return { name, isTarget };
+        }
+        return null;
+    }).filter(name => name !== null);
+
+    appNames.forEach(app => {
+        const color = app.isTarget ? 'RED' : 'GREEN';
+        log(`AUTO-${node.id}`, `  - @@${color}@@${app.name}##`);
+    });
+
+    logDebug(`AUTO-${node.id}`, 'Raw application data:', appsResponse.data);
+
+    // 4. Perform the removal logic, which requires the (now validated) token.
+    for (const app of appNames) {
+        if (app.isTarget) {
+            const mainAppName = app.name.substring(app.name.lastIndexOf('_') + 1);
+            log(`AUTO-${node.id}`, `Found target: ${app.name}. Removing main app: ${mainAppName}...`);
+
+            const removeResponse = await removeApp(node, mainAppName);
+            // The isTokenValid check at the start of the cycle reduces the chance of this failing,
+            // but we still handle it as a safeguard in case the token expires between checks.
+            if (removeResponse && !removeResponse.ok && (removeResponse.status === 401 || removeResponse.status === 403)) {
+                log(`MAIN-${node.id}`, 'Authentication failed during removeApp. Token is invalid. Pausing automation.');
+                clearInterval(node.automationIntervalId);
+                node.automationIntervalId = null;
+                node.token = null;
+                break; // Exit the loop for this cycle
+            }
         }
     }
 }
@@ -417,15 +471,24 @@ ipcMain.on('log-debug-from-preload', (event, { nodeId, message }) => {
     logDebug(`PRELOAD-${nodeId}`, message);
 });
 
-ipcMain.on('auth-state-changed', (event, authState) => {
+ipcMain.on('auth-state-changed', async (event, authState) => {
     const node = NODES.find(n => n.id === authState.nodeId);
     if (!node) return;
 
     if (authState.loggedIn) {
         log(`MAIN-${node.id}`, 'Received LOGIN notification.');
         node.token = authState.token;
+
+        // Proactively validate the token
+        const tokenIsValid = await isTokenValid(node);
+        if (!tokenIsValid) {
+            log(`MAIN-${node.id}`, 'Received a token that is already invalid. Not starting automation.');
+            node.token = null; // Clear the invalid token
+            return;
+        }
+
         if (!node.automationIntervalId) {
-            log(`MAIN-${node.id}`, 'Starting automation in 5 seconds...');
+            log(`MAIN-${node.id}`, 'Token is valid. Starting automation in 5 seconds...');
             setTimeout(() => {
                 log(`MAIN-${node.id}`, 'Initial automation cycle starting now.');
                 runAutomationCycle(node);
