@@ -109,7 +109,7 @@ async function checkFluxNodeExistence(apiUrl) {
 
 async function discoverNodesOnIp(ip, ipPrefix) {
     log('DISCOVERY', `Scanning IP: ${ip} with prefix ${ipPrefix}`);
-    const discoveredNodes = [];
+    const promises = [];
     const baseUiPort = 16126;
     const maxNodesPerIp = 8;
 
@@ -119,32 +119,42 @@ async function discoverNodesOnIp(ip, ipPrefix) {
         const apiUrl = `http://${ip}:${apiPort}`;
         
         log('DISCOVERY', `Checking for node at ${apiUrl}...`);
-        if (await checkFluxNodeExistence(apiUrl)) {
-            const nodeNumber = i + 1;
-            const paddedNodeNumber = String(nodeNumber).padStart(2, '0');
-            discoveredNodes.push({
-                id: `${ipPrefix}-node${paddedNodeNumber}`,
-                name: `${ipPrefix}-Node${paddedNodeNumber}`,
-                uiUrl: `http://${ip}:${uiPort}`,
-                apiUrl: apiUrl,
-                view: null,
-                token: null,
-                automationIntervalId: null
-            });
-            log('DISCOVERY', `Found active node: ${ipPrefix}-Node${paddedNodeNumber}`);
-        }
+        
+        const promise = checkFluxNodeExistence(apiUrl).then(exists => {
+            if (exists) {
+                const nodeNumber = i + 1;
+                const paddedNodeNumber = String(nodeNumber).padStart(2, '0');
+                const node = {
+                    id: `${ipPrefix}-node${paddedNodeNumber}`,
+                    name: `${ipPrefix}-Node${paddedNodeNumber}`,
+                    uiUrl: `http://${ip}:${uiPort}`,
+                    apiUrl: apiUrl,
+                    view: null,
+                    token: null,
+                    automationIntervalId: null
+                };
+                log('DISCOVERY', `Found active node: ${node.name}`);
+                return node;
+            }
+            return null;
+        });
+        promises.push(promise);
     }
-    return discoveredNodes;
+
+    const results = await Promise.all(promises);
+    return results.filter(node => node !== null);
 }
 
 async function discoverAllNodes(ips) {
     log('DISCOVERY', 'Starting node discovery across all IPs...');
-    let allFoundNodes = [];
-    for (let i = 0; i < ips.length; i++) {
-        const nodesOnThisIp = await discoverNodesOnIp(ips[i], `IP${String(i + 1).padStart(2, '0')}`);
-        allFoundNodes = allFoundNodes.concat(nodesOnThisIp);
-    }
-    NODES = allFoundNodes;
+    const discoveryPromises = ips.map((ip, index) => {
+        const ipPrefix = `IP${String(index + 1).padStart(2, '0')}`;
+        return discoverNodesOnIp(ip, ipPrefix);
+    });
+
+    const resultsByIp = await Promise.all(discoveryPromises);
+    NODES = resultsByIp.flat(); // Flatten the array of arrays
+
     log('DISCOVERY', `Total nodes found across all IPs: ${NODES.length}`);
 }
 
