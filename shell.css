@@ -3,17 +3,49 @@
 body, html {
     margin: 0;
     padding: 0;
-    height: 100%;
+    height: 100vh; /* Changed from 100% to 100vh for robustness */
     /* font-family will be set by JS */
     background-color: #2d3748; /* This will be the background of the content area */
     color: #f7fafc;
     overflow: hidden;
+    display: flex; /* Make body a flex container */
+    flex-direction: column; /* Stack toolbar and main-wrapper vertically */
+}
+
+#toolbar {
+    display: flex;
+    padding: 5px;
+    background-color: #1a202c;
+    border-bottom: 1px solid #4a5568;
+    flex-shrink: 0; /* Prevent toolbar from shrinking */
+}
+
+#toolbar button {
+    padding: 5px 15px;
+    margin-right: 5px;
+    background-color: #4a5568;
+    color: #f7fafc;
+    border: 1px solid #718096;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 1em;
+    transition: background-color 0.2s ease;
+}
+
+#toolbar button:hover {
+    background-color: #718096;
+}
+
+#toolbar button:last-child {
+    margin-right: 0;
 }
 
 .main-wrapper {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    flex: 1; /* Allow main-wrapper to fill remaining space */
+    min-height: 0; /* Important for flexbox shrinking */
 }
 
 .container {
@@ -38,28 +70,6 @@ body, html {
     overflow-y: auto; /* Make THIS part scrollable */
     min-height: 0; /* Crucial for shrinking */
     padding: 10px 5px 0 5px; /* Adjust padding */
-}
-
-.tabs-footer {
-    padding: 10px;
-    border-top: 1px solid #4a5568;
-}
-
-#force-refresh-button {
-    width: 100%;
-    padding: 8px;
-    background-color: #4a5568;
-    color: #f7fafc;
-    border: 1px solid #718096;
-    border-radius: 5px;
-    cursor: pointer;
-    font-family: inherit; /* Use font from body */
-    font-size: inherit; /* Use font size from body */
-    transition: background-color 0.2s ease;
-}
-
-#force-refresh-button:hover {
-    background-color: #718096;
 }
 
 .tab {

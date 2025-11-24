@@ -3,17 +3,40 @@ const { ipcRenderer } = require('electron');
 const tabsContainer = document.getElementById('tabs-container');
 const logViewer = document.getElementById('log-viewer');
 const contentContainer = document.getElementById('content-container');
-const refreshButton = document.getElementById('force-refresh-button');
+
+// Toolbar buttons
+const btnExit = document.getElementById('btn-exit');
+const btnReset = document.getElementById('btn-reset');
+const btnAbout = document.getElementById('btn-about');
+const btnDocs = document.getElementById('btn-docs');
+const btnSettings = document.getElementById('btn-settings');
+
 let activeTabId = null;
 let isDebugMode = false;
 
 // --- Event Listeners ---
 
-refreshButton.addEventListener('click', () => {
+btnExit.addEventListener('click', () => {
+    ipcRenderer.send('app-quit');
+});
+
+btnReset.addEventListener('click', () => {
     if (activeTabId) {
         console.log(`Requesting force refresh for node: ${activeTabId}`);
         ipcRenderer.send('force-refresh-node', { nodeId: activeTabId });
     }
+});
+
+btnAbout.addEventListener('click', () => {
+    ipcRenderer.send('show-about');
+});
+
+btnDocs.addEventListener('click', () => {
+    ipcRenderer.send('open-docs');
+});
+
+btnSettings.addEventListener('click', () => {
+    ipcRenderer.send('open-settings-file');
 });
 
 // --- Layout and Bounds Management ---
