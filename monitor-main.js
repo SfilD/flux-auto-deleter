@@ -1,4 +1,4 @@
-const { app, BrowserWindow, BrowserView, ipcMain, session } = require('electron');
+const { app, BrowserWindow, BrowserView, ipcMain, session, dialog, shell } = require('electron');
 const path = require('path');
 const fetch = require('node-fetch');
 const fs = require('fs');
@@ -232,7 +232,7 @@ function createMainWindow() {
     mainWindow.webContents.on('did-finish-load', () => {
         log('MAIN', 'Shell renderer finished loading. Sending initial data.');
         mainWindow.webContents.send('initialize-ui', { 
-            nodes: NODES.map(n => ({ id: n.id, name: n.name, uiUrl: n.uiUrl })), 
+            nodes: NODES.map(n => ({ id: n.id, name: n.name, uiUrl: n.uiUrl })),
             activeId: NODES.length > 0 ? NODES[0].id : null,
             debug: DEBUG_MODE,
             fontName: FONT_NAME,
@@ -362,6 +362,45 @@ async function runAutomationCycle(node) {
         }
     }
 }
+
+// New IPC Handlers for Toolbar
+ipcMain.on('app-quit', () => {
+    log('MAIN', 'Application quit requested from UI.');
+    app.quit();
+});
+
+ipcMain.on('show-about', async () => {
+    const appVersion = app.getVersion(); // Get version from package.json directly
+    await dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        title: 'About Flux Node Monitor',
+        message: 'Flux Node Monitor',
+        detail: `Version: ${appVersion}\nAuthor: ${require('./package.json').author}\nDescription: ${require('./package.json').description}`,
+        buttons: ['OK']
+    });
+});
+
+ipcMain.on('open-docs', () => {
+    const readmePath = path.join(__dirname, 'README.md');
+    shell.openPath(readmePath).then((err) => {
+        if (err) {
+            log('MAIN-Error', `Failed to open README.md: ${err}`);
+        } else {
+            log('MAIN', `Opened README.md: ${readmePath}`);
+        }
+    });
+});
+
+ipcMain.on('open-settings-file', () => {
+    const settingsPath = path.join(__dirname, 'settings.ini');
+    shell.openPath(settingsPath).then((err) => {
+        if (err) {
+            log('MAIN-Error', `Failed to open settings.ini: ${err}`);
+        } else {
+            log('MAIN', `Opened settings.ini: ${settingsPath}`);
+        }
+    });
+});
 
 // --- App Lifecycle Listeners ---
 
