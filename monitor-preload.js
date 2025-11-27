@@ -62,7 +62,7 @@ function hideSideMenu() {
     const themeSwitchSelector = '.feather-sun';
     const finalIconSelector = '[data-v-2ed358b2]';
     const githubLinkSelector = 'a[href="https://github.com/runonflux/flux"]';
-    style.innerHTML = `
+    style.textContent = `
       ${menuSelector} { display: none !important; }
       ${menuToggleSelector} { display: none !important; }
       ${bookmarkSelector} { display: none !important; }

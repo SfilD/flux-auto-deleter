@@ -1,8 +1,10 @@
-const { app, BrowserWindow, BrowserView, ipcMain, session, dialog, shell } = require('electron');
+const { app, BrowserWindow, BrowserView, ipcMain, session, dialog, shell, safeStorage } = require('electron');
 const path = require('path');
 const fetch = require('node-fetch');
 const fs = require('fs');
 const ini = require('ini');
+const net = require('net');
+const dns = require('dns');
 
 // Disable hardware acceleration to prevent rendering issues
 app.disableHardwareAcceleration();
@@ -10,9 +12,27 @@ app.disableHardwareAcceleration();
 // --- Load Configuration from settings.ini ---
 const config = ini.parse(fs.readFileSync(path.join(__dirname, 'settings.ini'), 'utf-8'));
 
-const SCAN_IPS = (config.General.ScanIPs || '').split(',').map(ip => ip.trim()).filter(ip => ip);
+const SCAN_IPS = (config.General.ScanIPs || '')
+    .split(',')
+    .map(ip => ip.trim())
+    .filter(ip => {
+        if (ip && net.isIP(ip)) {
+            return true;
+        }
+        if (ip) { // Log only if the value is not empty
+            log('CONFIG-Warning', `Invalid IP address format in settings.ini ignored: '${ip}'`);
+        }
+        return false;
+    });
 const TARGET_APP_PREFIXES = (config.General.TargetAppPrefixes || '').split(',').map(p => p.trim()).filter(p => p.length > 0);
-const AUTOMATION_INTERVAL = (parseInt(config.General.AutomationIntervalSeconds) || 60) * 1000;
+
+let automationIntervalSeconds = parseInt(config.General.AutomationIntervalSeconds, 10) || 60;
+if (automationIntervalSeconds < 60) {
+    log('CONFIG-Warning', `AutomationIntervalSeconds was set below the minimum of 60s and has been adjusted to 60s.`);
+    automationIntervalSeconds = 60;
+}
+const AUTOMATION_INTERVAL = automationIntervalSeconds * 1000;
+
 const DEBUG_MODE = String(config.General.Debug).toLowerCase() === 'true';
 const WINDOW_WIDTH = parseInt(config.General.WindowWidth) || 1200;
 const WINDOW_HEIGHT = parseInt(config.General.WindowHeight) || 800;
@@ -20,6 +40,7 @@ const LOG_CLEAR_ON_START = String(config.General.LogClearOnStart).toLowerCase() 
 const LOG_FILE = config.General.LogFile || 'session.log';
 const FONT_NAME = config.General.FontName || 'Hack';
 const FONT_SIZE = parseInt(config.General.FontSize) || 10;
+const MAX_LOG_HISTORY = parseInt(config.General.MaxLogHistory) || 1000;
 
 // --- Global State ---
 let preloaderWindow = null;
@@ -53,6 +74,11 @@ function dispatchLog(message, isDebug = false) {
     
     logHistory.push(message);
 
+    // Enforce the max log history size
+    if (logHistory.length > MAX_LOG_HISTORY) {
+        logHistory.shift(); // Removes the oldest element from the beginning
+    }
+
     // 1. Send to the active UI
     const targetWindow = preloaderWindow || mainWindow;
     if (targetWindow && !targetWindow.isDestroyed()) {
@@ -65,6 +91,44 @@ function dispatchLog(message, isDebug = false) {
     }
 }
 
+// Recursively masks sensitive data in objects and arrays
+function maskSensitiveData(data) {
+    if (data === null || typeof data !== 'object') {
+        return data;
+    }
+
+    // Create a deep copy to avoid mutating original objects
+    const clonedData = JSON.parse(JSON.stringify(data));
+
+    const sensitiveKeywords = ['token', 'password', 'signature', 'zelidauth', 'zelid', 'loginphrase'];
+
+    // Recursive function to traverse and mask
+    function recurse(current) {
+        if (current === null || typeof current !== 'object') {
+            return;
+        }
+
+        if (Array.isArray(current)) {
+            current.forEach(item => recurse(item));
+        } else {
+            for (const key in current) {
+                if (Object.prototype.hasOwnProperty.call(current, key)) {
+                    const lowerKey = key.toLowerCase();
+                    if (sensitiveKeywords.some(keyword => lowerKey.includes(keyword))) {
+                        current[key] = '[REDACTED]';
+                    } else {
+                        recurse(current[key]);
+                    }
+                }
+            }
+        }
+    }
+
+    recurse(clonedData);
+    return clonedData;
+}
+
+
 // Standard-level log
 function log(prefix, ...args) {
     const now = new Date();
@@ -75,7 +139,7 @@ function log(prefix, ...args) {
     const minutes = String(now.getMinutes()).padStart(2, '0');
     const timestamp = `[${day}.${month}.${year} ${hours}:${minutes}]`;
     
-    const message = `${timestamp}[${prefix}] ${args.map(arg => (typeof arg === 'object' && arg !== null) ? JSON.stringify(arg) : String(arg)).join(' ')}`;
+    const message = `${timestamp}[${prefix}] ${args.map(arg => (typeof arg === 'object' && arg !== null) ? JSON.stringify(maskSensitiveData(arg)) : String(arg)).join(' ')}`;
     dispatchLog(message, false);
 }
 
@@ -89,7 +153,7 @@ function logDebug(prefix, ...args) {
     const minutes = String(now.getMinutes()).padStart(2, '0');
     const timestamp = `[${day}.${month}.${year} ${hours}:${minutes}]`;
 
-    const message = `${timestamp}[${prefix}] ${args.map(arg => (typeof arg === 'object' && arg !== null) ? JSON.stringify(arg, null, 2) : String(arg)).join(' ')}`;
+    const message = `${timestamp}[${prefix}] ${args.map(arg => (typeof arg === 'object' && arg !== null) ? JSON.stringify(maskSensitiveData(arg), null, 2) : String(arg)).join(' ')}`;
     dispatchLog(message, true);
 }
 
@@ -111,6 +175,18 @@ async function fetchWithTimeout(url, options = {}, timeout = 10000) {
 }
 
 // --- Application Lifecycle Functions ---
+
+async function checkInternetConnection() {
+    return new Promise(resolve => {
+        dns.lookup('google.com', err => {
+            if (err && err.code === 'ENOTFOUND') {
+                resolve(false);
+            } else {
+                resolve(true);
+            }
+        });
+    });
+}
 
 async function checkFluxNodeExistence(apiUrl) {
     try {
@@ -187,8 +263,17 @@ async function clearAllCaches() {
     log('CACHE', 'Finished clearing all session caches.');
 }
 
-function showPreloaderAndDiscover() {
+async function showPreloaderAndDiscover() {
     setupFileLogger();
+
+    const hasInternet = await checkInternetConnection();
+    if (!hasInternet) {
+        log('MAIN-Error', 'No internet connection or DNS lookup failed. Please check your network. Shutting down.');
+        // Use a dialog box for immediate user feedback before quitting
+        dialog.showErrorBox('Network Error', 'No internet connection or DNS lookup failed. Please check your network settings.');
+        app.quit();
+        return;
+    }
 
     preloaderWindow = new BrowserWindow({
         width: 680,
@@ -233,7 +318,14 @@ function showPreloaderAndDiscover() {
 
 function createMainWindow() {
     if (NODES.length === 0) {
-        log('MAIN-Error', 'No active Flux nodes found. Shutting down.');
+        const errorTitle = 'No Nodes Found';
+        const errorMessage = `No active Flux nodes were found. Please check the following:
+1. The IP addresses in settings.ini are correct.
+2. Your internet connection is stable.
+3. A firewall or antivirus is not blocking the application's outgoing connections.`;
+        
+        log('MAIN-Error', errorMessage.replace(/\n/g, ' '));
+        dialog.showErrorBox(errorTitle, errorMessage);
         app.quit();
         return;
     }
@@ -328,7 +420,16 @@ async function removeApp(node, appName) {
         return { success: false, error: errorMsg, authError: true };
     }
     try {
-        const response = await fetchWithTimeout(`${node.apiUrl}/apps/appremove?appname=${appName}`, { method: 'GET', headers: { 'zelidauth': node.token } });
+        let decryptedToken;
+        if (Buffer.isBuffer(node.token)) {
+            decryptedToken = safeStorage.decryptString(node.token);
+        } else {
+            // This is a fallback for environments where safeStorage is not available
+            // or if the token was stored as plaintext.
+            decryptedToken = node.token;
+        }
+
+        const response = await fetchWithTimeout(`${node.apiUrl}/apps/appremove?appname=${appName}`, { method: 'GET', headers: { 'zelidauth': decryptedToken } });
 
         if (!response.ok) {
             const isAuthError = response.status === 401 || response.status === 403;
@@ -521,7 +622,15 @@ ipcMain.on('auth-state-changed', (event, authState) => {
 
     if (authState.loggedIn) {
         log(`MAIN-${node.id}`, 'Received LOGIN notification.');
-        node.token = authState.token;
+        
+        if (safeStorage.isEncryptionAvailable()) {
+            node.token = safeStorage.encryptString(authState.token);
+            logDebug(`MAIN-${node.id}`, 'Token encrypted and stored.');
+        } else {
+            log('MAIN-Warning', 'SafeStorage is not available. Storing token in plaintext. This is not recommended.');
+            node.token = authState.token; // Fallback for environments without encryption
+        }
+
         if (!node.automationIntervalId) {
             log(`MAIN-${node.id}`, 'Starting automation in 5 seconds...');
             setTimeout(() => {
