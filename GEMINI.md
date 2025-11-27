@@ -8,11 +8,11 @@ This project, `flux-auto-deleter`, is an Electron-based desktop application desi
 - **Framework:** Electron
 - **Languages:** JavaScript (Node.js)
 - **Configuration:** INI file (`settings.ini`)
-- **Dependencies:** `electron`, `node-fetch`, `ini`
+- **Dependencies:** `electron`, `node-fetch`, `ini`, `net`, `dns`
 
 **Architecture:**
 The application consists of three main parts:
-1.  **Main Process (`monitor-main.js`):** The backend of the Electron app. It handles node discovery, window management, and the core automation logic. It reads settings from `settings.ini` to discover nodes by scanning specified IP addresses. For each discovered node, it creates an Electron `BrowserView`. It now uses modern Electron security practices with `contextIsolation` enabled.
+1.  **Main Process (`monitor-main.js`):** The backend of the Electron app. It handles node discovery, window management, and the core automation logic. It reads settings from `settings.ini`, validates them, and discovers nodes by scanning specified IP addresses in parallel. For each discovered node, it creates an Electron `BrowserView`. It uses modern Electron security practices with `contextIsolation` enabled and encrypts sensitive tokens in memory using `safeStorage`.
 2.  **Renderer Process (`shell.html`, `shell-renderer.js`):** The main UI of the application. It displays a tab for each discovered node, a log viewer, and a quick access toolbar. It communicates with the main process via a secure `contextBridge`.
 3.  **Preload Scripts:**
     *   `monitor-preload.js`: Injected into the web content of each Flux node's UI (`BrowserView`). Its crucial role is to monitor the node's `localStorage` for an authentication token (`zelidauth`). When a token is found, it sends it to the main process, enabling the automation cycle. It also injects CSS to hide unwanted UI elements.
@@ -35,14 +35,22 @@ The development workflow specifies that coding occurs in a WSL environment, but 
 
 - **Configuration:**
   All runtime behavior is controlled by `settings.ini`. Before running the application, you must configure:
-  - `ScanIPs`: A comma-separated list of IP addresses to scan for Flux nodes.
+  - `ScanIPs`: A comma-separated list of IP addresses to scan for Flux nodes. Invalid entries will be ignored.
   - `TargetAppPrefixes`: Comma-separated names or prefixes of applications to be automatically removed.
-  - `AutomationIntervalSeconds`: The time in seconds between each application removal cycle.
+  - `AutomationIntervalSeconds`: The time in seconds between each application removal cycle. Must be 60 or greater.
+  - `MaxLogHistory`: The maximum number of log entries to keep in memory.
 
 ## Development Conventions
 
-- **Configuration Management:** All configuration is centralized in `settings.ini`. There are no hardcoded secrets or settings in the source code.
-- **Inter-Process Communication (IPC):** The application relies on Electron's `contextBridge` for secure IPC between the main process, the renderer process, and the preload scripts.
-- **UI:** The UI is kept simple, with the main window acting as a "shell" that hosts the web content of the nodes. The `monitor-preload.js` script actively hides parts of the original web UI to create a more integrated experience.
-- **Error Handling:** Network requests are wrapped in a `fetchWithTimeout` utility to prevent hangs, and API call responses are validated to ensure stability.
+- **Configuration Management:** All configuration is centralized in `settings.ini`. The application validates key settings on startup.
+- **Inter-Process Communication (IPC):** The application relies on Electron's `contextBridge` for secure IPC between the main process and its own renderer processes.
+- **UI:** The UI is kept simple, with the main window acting as a "shell" that hosts the web content of the nodes. The `monitor-preload.js` script actively hides parts of the original web UI to create a more integrated experience. External links are disabled to prevent navigating away from the node UI.
+- **Error Handling & Stability:**
+    - Network requests are wrapped in a `fetchWithTimeout` utility to prevent hangs.
+    - API call responses are validated to ensure stability.
+    - The in-memory log history is capped to prevent memory leaks.
+- **Security:**
+    - Modern Electron security practices (`contextIsolation`, `contextBridge`) are enforced.
+    - Sensitive tokens are encrypted in memory using `safeStorage`.
+    - Sensitive data is automatically masked before being written to logs.
 - **Asynchronous Operations:** Node discovery is performed in parallel using `Promise.all` for a significantly faster startup.
