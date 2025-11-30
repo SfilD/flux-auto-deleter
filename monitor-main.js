@@ -14,7 +14,7 @@ process.on('uncaughtException', (error, origin) => {
     app.quit();
 });
 
-process.on('unhandledRejection', reason => {
+process.on('unhandledRejection', (reason, promise) => {
     const reasonMsg = reason.stack || reason;
     log('FATAL-ERROR', 'An unhandled promise rejection occurred:', reasonMsg);
     dialog.showErrorBox('Critical Error', 'A critical, unrecoverable error occurred. The application will now close.\n\n' + reasonMsg);
@@ -23,6 +23,9 @@ process.on('unhandledRejection', reason => {
 
 // Disable hardware acceleration to prevent rendering issues
 app.disableHardwareAcceleration();
+
+// Suppress non-fatal Chromium logs (like SSL handshake informational errors)
+app.commandLine.appendSwitch('log-level', '3');
 
 // --- Load Configuration from settings.ini ---
 const config = ini.parse(fs.readFileSync(path.join(__dirname, 'settings.ini'), 'utf-8'));
@@ -270,7 +273,7 @@ async function discoverNodesOnIp(ip, ipPrefix) {
         
         log('DISCOVERY', `Checking for node at ${apiUrl}...`);
         
-        promises.push(checkFluxNodeExistence(apiUrl).then(exists => {
+        const promise = checkFluxNodeExistence(apiUrl).then(exists => {
             if (exists) {
                 const nodeNumber = i + 1;
                 const paddedNodeNumber = String(nodeNumber).padStart(2, '0');
@@ -287,7 +290,8 @@ async function discoverNodesOnIp(ip, ipPrefix) {
                 return node;
             }
             return null;
-        }));
+        });
+        promises.push(promise);
     }
 
     const results = await Promise.all(promises);
@@ -455,6 +459,7 @@ function createMainWindow() {
 
     if (NODES.length > 0) {
         mainWindow.setTopBrowserView(NODES[0].view);
+        activeViewId = NODES[0].id;
     }
 }
 
@@ -607,18 +612,14 @@ ipcMain.on('app-quit', () => {
 });
 
 ipcMain.on('show-about', async () => {
-    try {
-        const appVersion = app.getVersion(); // Get version from package.json directly
-        await dialog.showMessageBox(mainWindow, {
-            type: 'info',
-            title: 'About Flux Node Monitor',
-            message: 'Flux Node Monitor',
-            detail: `Version: ${appVersion}\nAuthor: ${require('./package.json').author}\nDescription: ${require('./package.json').description}`,
-            buttons: ['OK']
-        });
-    } catch (err) {
-        log('MAIN-Error', `Failed to show 'About' dialog: ${err.message}`);
-    }
+    const appVersion = app.getVersion(); // Get version from package.json directly
+    await dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        title: 'About Flux Node Monitor',
+        message: 'Flux Node Monitor',
+        detail: `Version: ${appVersion}\nAuthor: ${require('./package.json').author}\nDescription: ${require('./package.json').description}`,
+        buttons: ['OK']
+    });
 });
 
 ipcMain.on('open-docs', () => {
@@ -645,11 +646,7 @@ ipcMain.on('open-settings-file', () => {
 
 // --- App Lifecycle Listeners ---
 
-app.whenReady().then(showPreloaderAndDiscover).catch(err => {
-    log('FATAL-ERROR', 'An error occurred during application startup:', err);
-    dialog.showErrorBox('Critical Startup Error', 'A critical error occurred during application startup. The application will now close.\n\n' + (err.stack || err));
-    app.quit();
-});
+app.whenReady().then(showPreloaderAndDiscover);
 
 app.on('before-quit', () => {
     if (logStream) {
@@ -678,6 +675,7 @@ ipcMain.on('switch-view', (event, nodeId) => {
     const node = NODES.find(n => n.id === nodeId);
     if (node) {
         mainWindow.setTopBrowserView(node.view);
+        activeViewId = nodeId;
     }
 });
 
