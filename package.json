@@ -5,12 +5,31 @@
   "main": "monitor-main.js",
   "scripts": {
     "start": "electron .",
+    "dist": "electron-builder",
     "lint": "eslint ."
+  },
+  "build": {
+    "appId": "com.flux.autodeleter",
+    "productName": "Flux Auto Deleter",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "dir"
+      ],
+      "sign": null
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   },
   "author": "Gemini",
   "license": "ISC",
   "devDependencies": {
     "electron": "^39.0.0",
+    "electron-builder": "^24.9.1",
     "eslint": "^8.57.1"
   },
   "dependencies": {
