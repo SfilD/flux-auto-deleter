@@ -14,7 +14,7 @@ process.on('uncaughtException', (error, origin) => {
     app.quit();
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason) => {
     const reasonMsg = reason.stack || reason;
     log('FATAL-ERROR', 'An unhandled promise rejection occurred:', reasonMsg);
     dialog.showErrorBox('Critical Error', 'A critical, unrecoverable error occurred. The application will now close.\n\n' + reasonMsg);
@@ -52,8 +52,8 @@ if (automationIntervalSeconds < 60) {
 const AUTOMATION_INTERVAL = automationIntervalSeconds * 1000;
 
 const DEBUG_MODE = String(config.General.Debug).toLowerCase() === 'true';
-const WINDOW_WIDTH = parseInt(config.General.WindowWidth) || 1200;
-const WINDOW_HEIGHT = parseInt(config.General.WindowHeight) || 800;
+const WINDOW_WIDTH = Math.max(parseInt(config.General.WindowWidth) || 1300, 1300);
+const WINDOW_HEIGHT = Math.max(parseInt(config.General.WindowHeight) || 850, 850);
 const LOG_CLEAR_ON_START = String(config.General.LogClearOnStart).toLowerCase() === 'true';
 const LOG_FILE = config.General.LogFile || 'session.log';
 const FONT_NAME = config.General.FontName || 'Hack';
@@ -459,7 +459,6 @@ function createMainWindow() {
 
     if (NODES.length > 0) {
         mainWindow.setTopBrowserView(NODES[0].view);
-        activeViewId = NODES[0].id;
     }
 }
 
@@ -675,7 +674,6 @@ ipcMain.on('switch-view', (event, nodeId) => {
     const node = NODES.find(n => n.id === nodeId);
     if (node) {
         mainWindow.setTopBrowserView(node.view);
-        activeViewId = nodeId;
     }
 });
 
