@@ -193,6 +193,8 @@ To ensure that the downloaded files are not corrupted or tampered with, you can 
 **Full Data Cleanup:**
 The application stores session data (node authorization) in a separate system folder. If you want to completely remove all traces or reset all authorizations, run the included `clean-session.bat` script or manually delete the following folder:
 
+> **Note:** The script works in both CMD and PowerShell. Administrator privileges are NOT required, but you **must close the application** before running the script to avoid "Access Denied" errors.
+
 *   **Path:** `%AppData%\flux-session-monitor`
     *(Usually `C:\Users\USERNAME\AppData\Roaming\flux-session-monitor`)*
 
