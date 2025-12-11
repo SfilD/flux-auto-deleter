@@ -4,7 +4,7 @@ An Electron application to monitor Flux nodes and automatically delete specific 
 
 ## Download & Installation
 
-Latest version: **v0.9.1**
+Latest version: **v0.9.2**
 
 **[Download from GitHub Releases](https://github.com/SfilD/flux-auto-deleter/releases/latest)**
 
