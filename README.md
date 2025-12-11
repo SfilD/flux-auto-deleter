@@ -59,6 +59,9 @@ The application interacts with the following Flux node API endpoints:
 -   **Problem: The application crashes or behaves unexpectedly.**
     *   **Solution:** Check the `session.log` file located in the application's root directory. For more detailed diagnostics, set `Debug = true` in `settings.ini` and restart the application to generate more verbose logs.
 
+-   **Problem: Need to reset all application data/cache.**
+    *   **Solution:** Run the included `clean-session.bat` script. This will completely remove the application's data directory (`%AppData%\flux-session-monitor`), effectively resetting the app to its initial state.
+
 ## Development Workflow
 
 This section describes the unique development and testing environment for the project.
