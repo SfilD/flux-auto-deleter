@@ -7,9 +7,10 @@ if not exist "%DATA_DIR%" (
 )
 
 echo Found data directory: "%DATA_DIR%"
-set /p "CHOICE=Are you sure you want to delete it? (Y/N): "
+set "CHOICE=N"
+set /p "CHOICE=Are you sure you want to delete it? (y/N): "
 
-if /i "%CHOICE%"=="Y" (
+if /i "%CHOICE%"=="y" (
     rmdir /s /q "%DATA_DIR%"
     echo [OK] Data cleared.
 ) else (
