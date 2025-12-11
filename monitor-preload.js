@@ -101,16 +101,53 @@ function initializeMonitor() {
         }
     };
 
+    const checkFluxOSVersion = () => {
+        try {
+            const spans = document.querySelectorAll('span');
+            let versionElement = null;
+            for (const span of spans) {
+                if (span.textContent && span.textContent.includes('FluxOS v')) {
+                    versionElement = span;
+                    break;
+                }
+            }
+    
+            if (versionElement) {
+                const currentVersionText = versionElement.textContent.trim();
+                const lastKnownVersion = localStorage.getItem('last_known_flux_version');
+    
+                if (lastKnownVersion && lastKnownVersion !== currentVersionText) {
+                    log(`FluxOS version change detected! Old: ${lastKnownVersion}, New: ${currentVersionText}`);
+                    ipcRenderer.send('fluxos-version-changed', { 
+                        nodeId: nodeId, 
+                        oldVersion: lastKnownVersion, 
+                        newVersion: currentVersionText 
+                    });
+                }
+                
+                if (lastKnownVersion !== currentVersionText) {
+                    localStorage.setItem('last_known_flux_version', currentVersionText);
+                }
+            }
+        } catch (e) {
+            logDebug(`Error checking FluxOS version: ${e.message}`);
+        }
+    };
+
     // Check on page load fully
     window.addEventListener('load', () => {
         log('Page fully loaded. Performing initial state log.');
         logState('Initial State (After Load)');
+        checkFluxOSVersion();
         checkAuthState();
     });
 
     // Check periodically for changes in localStorage
     // Increased interval to 3000ms to reduce CPU load with many active nodes
-    setInterval(checkAuthState, 3000);
+    setInterval(() => {
+        checkAuthState();
+        checkFluxOSVersion();
+    }, 3000);
 }
 
 window.addEventListener('DOMContentLoaded', initializeMonitor);

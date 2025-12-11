@@ -53,7 +53,7 @@ The application interacts with the following Flux node API endpoints:
 
 This section describes the unique development and testing environment for the project.
 
--   **Development Environment:** Code is written and edited in a WSL (Windows Subsystem for Linux) environment, specifically the **Ubuntu-22.04** distribution.
+-   **Development Environment:** Code is written and edited in a WSL (Windows Subsystem for Linux) environment, specifically the **Ubuntu-24.04** distribution.
 
 -   **Execution and Testing Environment:** For actual execution and testing, the project files are copied to a VMware virtual machine running **Windows 10 Pro**.
 

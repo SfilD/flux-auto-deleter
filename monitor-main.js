@@ -842,4 +842,23 @@ ipcMain.on('auth-state-changed', (event, authState) => {
             node.automationIntervalId = null;
         }
     }
+}); // Corrected missing brace
+
+ipcMain.on('fluxos-version-changed', (event, { nodeId, oldVersion, newVersion }) => {
+    const node = NODES.find(n => n.id === nodeId);
+    if (!node) return;
+
+    log(`MAIN-${node.id}`, `WARNING: FluxOS updated from @@YELLOW@@${oldVersion}## to @@YELLOW@@${newVersion}##.`);
+    log(`MAIN-${node.id}`, 'This usually invalidates the current session token. Forcing logout state.');
+
+    // Force invalidation of the token
+    node.token = null;
+    
+    // Stop automation
+    if (node.automationIntervalId) {
+        clearInterval(node.automationIntervalId);
+        node.automationIntervalId = null;
+    }
+    
+    log(`MAIN-${node.id}`, 'Automation paused. Please re-login manually via ZelCore.');
 });
