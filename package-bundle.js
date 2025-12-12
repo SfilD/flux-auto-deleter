@@ -115,7 +115,15 @@ async function createBundle() {
         console.log('Done.');
     }
 
-    // 2. Checksum for Setup Exe
+    // 2. Checksum for Portable Executable (extracted)
+    if (fs.existsSync(portableExePath)) {
+        process.stdout.write(`Calculating for ${portableExeName}... `);
+        const hash = await calculateChecksum(portableExePath);
+        checksums.push(`${hash}  ${portableExeName}`);
+        console.log('Done.');
+    }
+
+    // 3. Checksum for Setup Exe
     if (fs.existsSync(setupExePath)) {
         process.stdout.write(`Calculating for ${setupExeName}... `);
         const hash = await calculateChecksum(setupExePath);
