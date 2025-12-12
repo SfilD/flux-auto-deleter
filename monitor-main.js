@@ -487,7 +487,10 @@ async function showPreloaderAndDiscover() {
 function createMainWindow() {
     // Note: The NODES check is now done in showPreloaderAndDiscover to prevent premature closing.
     
+    const appVersion = app.getVersion();
+
     mainWindow = new BrowserWindow({
+        title: `Flux Auto-Deleter v${appVersion}`,
         width: WINDOW_WIDTH,
         height: WINDOW_HEIGHT,
         resizable: false,
