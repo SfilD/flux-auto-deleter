@@ -215,7 +215,12 @@ A common cause is a FluxOS version update (e.g., from v7.2.0 to v7.3.0) or sessi
 1.  **Try Tab Reset:** Open the tab of the problematic node and click the **Reset** button on the top toolbar. This will clear cookies/cache for this node and reload it. Then re-login.
 2.  **Full Reset:** If the above doesn't help or the app is crashing, close the application and run the `clean-session.bat` file located in the application folder. This will safely wipe all cached data and session files. Restart the application and log in again.
 
-## 11. Support & Donations
+## 11. Feedback
+
+Found a bug? Have a feature request?
+Please report it via **[GitHub Issues](https://github.com/SfilD/flux-auto-deleter/issues)**.
+
+## 12. Support & Donations
 
 This software is Freeware. If you find it useful and want to support the developer, you can donate to the following addresses:
 

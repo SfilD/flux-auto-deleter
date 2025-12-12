@@ -4,7 +4,7 @@ An Electron application to monitor Flux nodes and automatically delete specific 
 
 ## Download & Installation
 
-Latest version: **v0.9.4**
+Latest version: **v0.9.5**
 
 **[Download from GitHub Releases](https://github.com/SfilD/flux-auto-deleter/releases/latest)**
 
@@ -73,6 +73,12 @@ This section describes the unique development and testing environment for the pr
 -   **Working Directory on Windows:** On the Windows VM, the project is located at `C:\Projects\flux-auto-deleter\`.
 
 **Key Point:** All runtime commands (e.g., `npm start`) must be executed **only within the Windows 10 Pro environment** on the virtual machine, not in WSL.
+
+## Feedback & Bug Reports
+
+If you encounter any bugs, errors, or have suggestions for new features, please open an issue on our GitHub repository. This is the most effective way to reach the developer.
+
+*   **Report a Bug / Request Feature:** [GitHub Issues](https://github.com/SfilD/flux-auto-deleter/issues)
 
 ## Support & Donations
 
