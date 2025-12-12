@@ -155,7 +155,12 @@ function addLogMessage(message) {
 // --- IPC Listeners ---
 
 window.electronAPI.on('initialize-ui', (data) => {
-    const { nodes, activeId, debug, fontName, fontSize, logHistory } = data;
+    const { appVersion, nodes, activeId, debug, fontName, fontSize, logHistory } = data;
+    
+    if (appVersion) {
+        document.title = `Flux Auto-Deleter v${appVersion}`;
+    }
+
     isDebugMode = debug;
 
     // Populate log viewer with history
