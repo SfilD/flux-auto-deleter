@@ -515,6 +515,7 @@ function createMainWindow() {
     mainWindow.webContents.on('did-finish-load', () => {
         log('MAIN', 'Shell renderer finished loading. Sending initial data.');
         mainWindow.webContents.send('initialize-ui', { 
+            appVersion: app.getVersion(),
             nodes: NODES.map(n => ({ id: n.id, name: n.name, uiUrl: n.uiUrl })),
             activeId: NODES.length > 0 ? NODES[0].id : null,
             debug: DEBUG_MODE,
