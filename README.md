@@ -4,6 +4,8 @@
 
 An Electron application to monitor Flux nodes and automatically delete specific running applications.
 
+![Flux Auto-Deleter Screenshot](assets/screenshot.png)
+
 ## Download & Installation
 
 Latest version: **v0.9.6**
