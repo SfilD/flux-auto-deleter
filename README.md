@@ -2,6 +2,12 @@
 
 # flux-auto-deleter
 
+> **⚠️ IMPORTANT COMPATIBILITY NOTICE**
+>
+> The web interface for nodes running **ArcaneOS** has been drastically redesigned and is currently not fully functional.
+> This version of the application retains its functionality **exclusively for Legacy nodes** (standard FluxOS).
+> Support for ArcaneOS will be considered once its web interface stabilizes.
+
 An Electron application to monitor Flux nodes and automatically delete specific running applications.
 
 ![Flux Auto-Deleter Screenshot](assets/screenshot.png)

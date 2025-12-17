@@ -619,6 +619,26 @@ async function removeApp(node, appName) {
         // Successful removal might not return a JSON body, but just an OK status.
         const responseText = await response.text();
         logDebug(`API-${node.id}`, `Successfully removed app ${appName}. Server response: ${responseText}`);
+
+        // Try to parse the response as JSON to check for "soft" errors (200 OK but error body)
+        try {
+            const jsonResponse = JSON.parse(responseText);
+            if (jsonResponse.status === 'error') {
+                const errorData = jsonResponse.data || {};
+                const errorCode = errorData.code;
+                const errorMessage = errorData.message || JSON.stringify(errorData);
+
+                if (errorCode === 401 || errorCode === 403 || (typeof errorMessage === 'string' && errorMessage.toLowerCase().includes('unauthorized'))) {
+                     log(`API-${node.id}-Error`, `Soft-fail: API returned 200 OK but body contains Unauthorized error.`);
+                     return { success: false, error: errorMessage, authError: true };
+                }
+                
+                return { success: false, error: errorMessage, authError: false };
+            }
+        } catch (e) {
+            // Response is not JSON, assume success (simple text response)
+        }
+
         return { success: true, data: responseText };
 
     } catch (error) {
