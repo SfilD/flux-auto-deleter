@@ -62,6 +62,14 @@ The application interface is intentionally simplified for maximum stability and 
         *   **Red text:** Target application (match found, will be deleted!).
         *   **Yellow text:** Application deletion process.
 
+### Privacy Note (ArcaneOS)
+In the new ArcaneOS interface, Flux enables "Analytics Cookies" by default upon first login or after a reset.
+To disable telemetry:
+1.  Click the **"Manage Cookies"** button (green text in the bottom status bar).
+2.  In the "Cookie Preferences" window, disable **"Analytics Cookies"**.
+3.  Click "Save Preferences".
+*Note: This setting is stored in your local browser cache and may reset if you use the "Reset" button or clear session data using the `clean-session.bat` script.*
+
 ### Toolbar
 Quick access buttons at the top of the window:
 
