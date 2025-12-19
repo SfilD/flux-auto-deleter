@@ -181,7 +181,7 @@ The login process depends on your FluxOS version.
 3.  **Manual:** Click "Login manually" (if available) or use the specific manual login section provided by the legacy interface, copying the Message and pasting the Signature.
 
 **How to Log Out:**
-*   Typically a "Logout" button in the sidebar or top menu.
+*   The "Logout" button is located in the top-right corner of the node's main web interface window.
 
 ---
 
