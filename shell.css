@@ -46,51 +46,62 @@ body, html {
     margin-right: 0;
 }
 
-.main-wrapper {
-    display: flex;
-    flex-direction: column;
-    flex: 1; /* Allow main-wrapper to fill remaining space */
-    min-height: 0; /* Important for flexbox shrinking */
-}
-
-.container {
-    display: flex;
-    flex-direction: row; /* Changed from column to row */
-    flex: 1; /* Allow container to grow */
-    min-height: 0; /* Important for flexbox shrinking */
+.app-grid {
+    display: grid;
+    grid-template-columns: auto 1fr; /* Sidebar width auto-calculated by JS, rest for content */
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 }
 
 #tabs-column {
     display: flex;
     flex-direction: column;
-    min-width: 180px; /* Minimum reasonable width */
-    max-width: 45%; /* Maximum reasonable width */
-    flex-shrink: 0;
+    grid-row: 1;
+    min-width: 180px;
     background-color: #1a202c;
     border-right: 1px solid #4a5568;
+    height: 100%;
+}
+
+#main-content {
+    display: grid;
+    /* 
+       Login mode: 
+       Row 1 (Node UI): 1fr (takes remaining space)
+       Row 2 (Logs): var(--sidebar-width) (height = sidebar width)
+       Fallback: 250px if variable not set
+    */
+    grid-template-rows: 1fr var(--sidebar-width, 250px);
+    min-height: 0;
+    height: 100%;
+    transition: grid-template-rows 0.3s ease;
+}
+
+/* MONITOR MODE: Hide node UI, logs take full height */
+.app-grid.monitor-mode #main-content {
+    grid-template-rows: 0% 100%;
 }
 
 #tabs-container {
-    flex: 1; /* Make the list container grow */
-    overflow-y: auto; /* Make THIS part scrollable */
-    min-height: 0; /* Crucial for shrinking */
-    padding: 10px 5px 0 5px; /* Adjust padding */
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    padding: 10px 0 0 5px;
 }
 
 .tab {
-    padding: 7px 15px; /* Adjusted padding */
+    padding: 10px 15px;
     cursor: pointer;
-    /* font-size will be set by JS */
     border: 1px solid transparent;
-    border-right: none; /* De-emphasize right border */
-    margin-bottom: 4px; /* Changed from margin-right */
-    border-radius: 5px 0 0 5px; /* Rounded corners on the left */
+    border-right: none;
+    margin-bottom: 2px;
+    border-radius: 5px 0 0 5px;
     background-color: #4a5568;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
-    white-space: nowrap; /* Prevent text wrapping */
+    transition: all 0.2s ease;
+    white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis; /* Add ellipsis for long names */
-    /* font-family will be set by JS */
+    text-overflow: ellipsis;
 }
 
 .tab:hover {
@@ -98,26 +109,46 @@ body, html {
 }
 
 .tab.active {
-    background-color: #2d3748; /* Match content background */
+    background-color: #2d3748;
     border-color: #4a5568;
-    border-right-color: #2d3748; /* Make right border disappear into the content area */
+    border-right-color: #2d3748;
     color: #f7fafc;
+    font-weight: bold;
 }
 
-.content {
-    flex-grow: 1;
+#content-container {
+    background-color: #2d3748;
     position: relative;
+    overflow: hidden;
 }
 
 #log-viewer {
-    height: 30%;
     background-color: #1a202c;
     border-top: 1px solid #4a5568;
-    overflow-y: scroll;
-    padding: 2px;
-    /* font-family and font-size will be set by JS */
-    color: #a0aec0;
+    overflow-y: auto; /* Use auto to show scrollbar only when needed */
+    padding: 0; /* Remove padding from scroll container */
     box-sizing: border-box;
+    display: block; /* Restore block display for proper scrolling */
+}
+
+#log-content {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 5px; /* Padding lives here now */
+    box-sizing: border-box;
+}
+
+#log-viewer p {
+    margin: 0 0 2px 0;
+    padding: 0;
+    word-break: break-all;
+}
+
+/* Remove margin from the very last log entry to eliminate bottom gap */
+#log-viewer p:last-child {
+    margin-bottom: 0;
 }
 
 #log-viewer p {

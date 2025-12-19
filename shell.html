@@ -9,22 +9,25 @@
 <body>
     <div id="toolbar">
         <button id="btn-reset">Reset</button>
+        <button id="btn-layout" title="Toggle between Login and Monitor modes">Login Mode</button>
         <button id="btn-settings">Settings</button>
         <button id="btn-docs">Docs</button>
         <button id="btn-about">About</button>
     </div>
-    <div class="main-wrapper">
-        <div class="container">
-            <div id="tabs-column">
-                <div id="tabs-container">
-                    <!-- Tabs will be dynamically inserted here -->
-                </div>
-            </div>
-            <div class="content" id="content-container">
-                <!-- BrowserView will be attached here -->
+    <div class="app-grid">
+        <div id="tabs-column">
+            <div id="tabs-container">
+                <!-- Tabs will be dynamically inserted here -->
             </div>
         </div>
-        <div id="log-viewer"></div>
+        <div id="main-content">
+            <div id="content-container">
+                <!-- BrowserView will be attached here -->
+            </div>
+            <div id="log-viewer">
+                <div id="log-content"></div>
+            </div>
+        </div>
     </div>
     <script src="shell-renderer.js"></script>
 </body>

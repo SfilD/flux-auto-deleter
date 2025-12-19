@@ -1,15 +1,19 @@
 const tabsContainer = document.getElementById('tabs-container');
 const logViewer = document.getElementById('log-viewer');
+const logContent = document.getElementById('log-content');
 const contentContainer = document.getElementById('content-container');
+const appGrid = document.querySelector('.app-grid');
 
 // Toolbar buttons
 const btnReset = document.getElementById('btn-reset');
+const btnLayout = document.getElementById('btn-layout');
 const btnAbout = document.getElementById('btn-about');
 const btnDocs = document.getElementById('btn-docs');
 const btnSettings = document.getElementById('btn-settings');
 
 let activeTabId = null;
 let isDebugMode = false;
+let isMonitorMode = false;
 
 // --- Event Listeners ---
 
@@ -18,6 +22,20 @@ btnReset.addEventListener('click', () => {
         console.log(`Requesting force refresh for node: ${activeTabId}`);
         window.electronAPI.send('force-refresh-node', { nodeId: activeTabId });
     }
+});
+
+btnLayout.addEventListener('click', () => {
+    isMonitorMode = !isMonitorMode;
+    if (isMonitorMode) {
+        appGrid.classList.add('monitor-mode');
+        btnLayout.textContent = 'Monitor Mode';
+        btnLayout.style.backgroundColor = '#2f855a'; // Greenish
+    } else {
+        appGrid.classList.remove('monitor-mode');
+        btnLayout.textContent = 'Login Mode';
+        btnLayout.style.backgroundColor = '#4a5568'; // Standard
+    }
+    // sendContentBounds will be triggered by ResizeObserver
 });
 
 btnAbout.addEventListener('click', () => {
@@ -96,7 +114,10 @@ function updateThemeAndLayout(fontName, fontSize) {
         // Set the container width, accounting for content, padding, and scrollbar
         const tabsColumn = document.getElementById('tabs-column');
         const newWidth = maxWidth + scrollbarWidth + containerPadding + tabBorderWidth + 2; // Add a 2px safety buffer
+        
+        // Apply width to element and set global variable for CSS usage
         tabsColumn.style.width = `${newWidth}px`;
+        document.documentElement.style.setProperty('--sidebar-width', `${newWidth}px`);
     });
 }
 
@@ -148,8 +169,8 @@ function addLogMessage(message) {
         p.appendChild(document.createTextNode(message.substring(lastIndex)));
     }
 
-    logViewer.appendChild(p);
-    logViewer.scrollTop = logViewer.scrollHeight; // Auto-scroll
+    logContent.appendChild(p);
+    logViewer.scrollTop = logViewer.scrollHeight; // Auto-scroll wrapper
 }
 
 // --- IPC Listeners ---
@@ -164,7 +185,7 @@ window.electronAPI.on('initialize-ui', (data) => {
     isDebugMode = debug;
 
     // Populate log viewer with history
-    logViewer.innerHTML = '';
+    logContent.innerHTML = '';
     logHistory.forEach(addLogMessage);
 
     // Clear existing tabs
