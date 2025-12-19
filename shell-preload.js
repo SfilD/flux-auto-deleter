@@ -5,7 +5,7 @@ const validSendChannels = [
     'app-quit', 'app-relaunch', 'show-about', 'open-docs', 'open-settings-file', 
     'force-refresh-node', 'update-view-bounds', 'switch-view'
 ];
-const validReceiveChannels = ['initialize-ui', 'log-message'];
+const validReceiveChannels = ['initialize-ui', 'log-message', 'update-node-status'];
 
 // Expose a safe, limited API to the renderer process for the main shell
 contextBridge.exposeInMainWorld('electronAPI', {
