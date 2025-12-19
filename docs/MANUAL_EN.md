@@ -48,8 +48,8 @@ The interface supports two display modes, toggled by a button in the top toolbar
 
 1.  **Login Mode:**
     *   **Tabs (Left):** List of nodes taking the full window height.
-    *   **Node Window (Top Right):** Occupies 75% of the height. Intended for password entry and authorization.
-    *   **Logs (Bottom Right):** A compact area (25% of height) for status monitoring.
+    *   **Node Window (Top Right):** Occupies 80% of the height. Intended for password entry and authorization.
+    *   **Logs (Bottom Right):** A compact area (20% of height) for status monitoring.
 2.  **Monitor Mode:**
     *   **Node Window:** Completely hidden to save space.
     *   **Logs:** Occupy **100%** of the right column, providing maximum visibility for events.

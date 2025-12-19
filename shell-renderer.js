@@ -115,9 +115,8 @@ function updateThemeAndLayout(fontName, fontSize) {
         const tabsColumn = document.getElementById('tabs-column');
         const newWidth = maxWidth + scrollbarWidth + containerPadding + tabBorderWidth + 2; // Add a 2px safety buffer
         
-        // Apply width to element and set global variable for CSS usage
+        // Apply width to element
         tabsColumn.style.width = `${newWidth}px`;
-        document.documentElement.style.setProperty('--sidebar-width', `${newWidth}px`);
     });
 }
 
