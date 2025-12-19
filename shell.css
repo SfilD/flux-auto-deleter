@@ -102,6 +102,23 @@ body, html {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: flex; /* Flex to align dot and text */
+    align-items: center; /* Vertically center */
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #cbd5e0; /* Grey for offline/unknown */
+    margin-right: 10px;
+    flex-shrink: 0;
+    transition: background-color 0.3s ease;
+}
+
+.status-dot.online {
+    background-color: #48bb78; /* Green for authorized */
+    box-shadow: 0 0 5px #48bb78; /* Slight glow effect */
 }
 
 .tab:hover {

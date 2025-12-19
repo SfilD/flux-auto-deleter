@@ -516,7 +516,12 @@ function createMainWindow() {
         log('MAIN', 'Shell renderer finished loading. Sending initial data.');
         mainWindow.webContents.send('initialize-ui', { 
             appVersion: app.getVersion(),
-            nodes: NODES.map(n => ({ id: n.id, name: n.name, uiUrl: n.uiUrl })),
+            nodes: NODES.map(n => ({ 
+                id: n.id, 
+                name: n.name, 
+                uiUrl: n.uiUrl,
+                hasToken: !!n.token // Send initial auth status
+            })),
             activeId: NODES.length > 0 ? NODES[0].id : null,
             debug: DEBUG_MODE,
             fontName: FONT_NAME,
@@ -883,6 +888,14 @@ ipcMain.on('log-debug-from-preload', (event, { nodeId, message }) => {
 ipcMain.on('auth-state-changed', (event, authState) => {
     const node = NODES.find(n => n.id === authState.nodeId);
     if (!node) return;
+
+    // Notify UI about status change
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update-node-status', { 
+            nodeId: node.id, 
+            hasToken: authState.loggedIn 
+        });
+    }
 
     if (authState.loggedIn) {
         log(`MAIN-${node.id}`, 'Received LOGIN notification.');

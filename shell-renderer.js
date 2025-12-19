@@ -195,8 +195,18 @@ window.electronAPI.on('initialize-ui', (data) => {
         const tab = document.createElement('div');
         tab.id = `tab-${node.id}`;
         tab.className = 'tab';
+
+        // Status Dot
+        const statusDot = document.createElement('span');
+        statusDot.className = 'status-dot';
+        if (node.hasToken) {
+            statusDot.classList.add('online');
+        }
+        tab.appendChild(statusDot);
+
         const address = node.uiUrl.replace('http://', '');
-        tab.textContent = `${node.name} [${address}]`;
+        // Add text node after the dot
+        tab.appendChild(document.createTextNode(`${node.name} [${address}]`));
 
         if (node.id === activeId) {
             tab.classList.add('active');
@@ -224,6 +234,21 @@ window.electronAPI.on('initialize-ui', (data) => {
 
 window.electronAPI.on('log-message', (message) => {
     addLogMessage(message);
+});
+
+window.electronAPI.on('update-node-status', (data) => {
+    const { nodeId, hasToken } = data;
+    const tab = document.getElementById(`tab-${nodeId}`);
+    if (tab) {
+        const dot = tab.querySelector('.status-dot');
+        if (dot) {
+            if (hasToken) {
+                dot.classList.add('online');
+            } else {
+                dot.classList.remove('online');
+            }
+        }
+    }
 });
 
 // --- Console Override ---
