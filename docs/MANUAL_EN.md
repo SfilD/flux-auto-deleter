@@ -28,7 +28,10 @@ No additional components are required to run the program.
     3.  Configure `settings.ini` (see the "Configuration" section below).
     4.  Run the `.exe` file.
 
-2.  **Installer (Setup):**
+2.  **Portable Version (EXE):**
+    *   Single file `FluxAutoDeleter_Portable_X.X.X.exe`. Useful for updates: simply replace the old `.exe` file with the new one in your application folder.
+
+3.  **Installer (Setup):**
     1.  Run the `FluxAutoDeleter_Setup_X.X.X.exe` file and follow the installation instructions.
     2.  After installation, a shortcut will appear on your desktop.
     3.  The `settings.ini` file will be located in the program's installation folder:
@@ -56,6 +59,7 @@ The interface supports two display modes, toggled by a button in the top toolbar
 
 **Detailed Element Description:**
 1.  **Tabs Panel (Left):** A list of all your nodes.
+    *   **Status Indicators:** A colored dot indicates authorization status (🟢 Green = Authorized, ⚪ Grey = Not logged in).
     *   **Naming Format:** `ID [IP:Port]`.
     *   **Example:** `IP01-Node01 [1.2.3.4:16126]`.
     *   Click on a tab to switch to that node.
