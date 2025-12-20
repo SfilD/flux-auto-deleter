@@ -123,20 +123,20 @@ A list of IP addresses for your Flux nodes.
 ScanIPs = 1.2.3.4,5.6.7.8,9.10.11.12
 ```
 
-#### `TargetAppPrefixes` (Deletion Rules)
-List the keywords to search for applications that should be deleted.
+#### `TargetAppPrefixes` (Application Blocklist / Policy Enforcement)
+List the keywords to search for applications that are prohibited by the node owner's policy.
 
 *   **How it works:** The application searches for the specified text **in any part of the name** of a running application (at the beginning, middle, or end).
-*   **Case Sensitivity:** Case **MATTERS**. `Kaspa` and `kaspa` are different words to the program. Specify the name exactly as it appears in the Flux interface.
+*   **Case Sensitivity:** Case **MATTERS**. `TestApp` and `testapp` are different words to the program. Specify the name exactly as it appears in the Flux interface.
 
 *Example:*
-If you specify `TargetAppPrefixes = Folding,Test`, the application will delete:
-*   `FoldingAtHome` (contains "Folding")
+If you specify `TargetAppPrefixes = Stuck,Test`, the application will stop:
+*   `StuckContainer_v1` (contains "Stuck")
 *   `MyTestApp` (contains "Test")
-*   `New-folding-node` (contains "folding" - **WILL NOT DELETE** because the case does not match "Folding")
+*   `new-stuck-node` (contains "stuck" - **WILL NOT STOP** because the case does not match "Stuck")
 
 *Pro Tip:*
-To find the exact application name, open your node's address in a browser: `http://YOUR_NODE_IP:PORT/apps/localapps` (where PORT is your usual web interface port, e.g., 16126, 16136).
+To find the exact container name, open your node's address in a browser: `http://YOUR_NODE_IP:PORT/apps/localapps`.
 Go to the **Local Apps** section, find the target application, copy its name from the **Name** column, and paste it into `settings.ini`.
 
 ```ini
