@@ -37,4 +37,4 @@ config.js.local
 *.snap
 
 # Backup files
-*.bak_*
+*.bak_*settings.ini
