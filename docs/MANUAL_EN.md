@@ -4,9 +4,9 @@
 
 **PLEASE READ CAREFULLY BEFORE USING THIS SOFTWARE.**
 
-This software (`FluxNodeManager`) provides tools for **AUTOMATIC MANAGEMENT AND REMOVAL** of applications (containers) from your Flux Nodes.
+This software (`FluxNodeManager`) provides tools for **AUTOMATIC MANAGEMENT AND CLEANUP** of applications (containers) from your Flux Nodes.
 
-1.  **Resource Management:** The core function of this tool is to stop and remove applications based on your policies. A removed container **CANNOT BE RECOVERED** by this tool.
+1.  **Resource Management:** The core function of this tool is to stop and clean up applications based on your policies. A stopped container **CANNOT BE RECOVERED** by this tool.
 2.  **Owner Responsibility:** You are solely responsible for the correctness of the `settings.ini` configuration file. Specifying an incorrect prefix in `TargetAppPrefixes` may lead to the unintended stoppage of *all* or *critical* applications.
 3.  **No Warranty:** The author(s) and contributors of this software accept **NO LIABILITY** for any direct, indirect, incidental, or consequential damages (including but not limited to node downtime) arising from the use of this tool.
 
@@ -76,9 +76,9 @@ The interface supports two display modes, toggled by a button in the top toolbar
         *   `[AUTO]`: Automatic deletion algorithm activity.
         *   `[API]`: Network request results.
     *   **Color Coding:**
-        *   **Green text:** Safe application (will not be deleted).
-        *   **Red text:** Target application (match found, will be deleted!).
-        *   **Yellow text:** Application deletion process.
+        *   **Green text:** Safe application (will remain running).
+        *   **Red text:** Target application (match found, will be stopped!).
+        *   **Yellow text:** Container cleanup process.
 
 ### Privacy Note (ArcaneOS)
 In the new ArcaneOS interface, Flux enables "Analytics Cookies" by default upon first login or after a reset.
@@ -153,7 +153,7 @@ AutomationIntervalSeconds = 300
 
 To allow the application to manage a node, you must authorize yourself in the Flux web interface.
 
-1.  Launch Flux Auto-Deleter.
+1.  Launch Flux Node Manager.
 2.  Wait for the tabs with your nodes to load.
 3.  Switch to the tab of the desired node.
 
@@ -238,7 +238,7 @@ To ensure that the downloaded files are not corrupted or tampered with, you can 
 *   **Installer:** Use the standard Windows uninstaller ("Settings" -> "Apps").
 
 **Full Data Cleanup:**
-The application stores session data (node authorization) in a separate system folder. If you want to completely remove all traces or reset all authorizations, perform one of the following actions:
+The application stores session data (node authorization) in a separate system folder. If you want to completely clear all traces or reset all authorizations, perform one of the following actions:
 
 1.  **Automatically:** Run the included `clean-session.bat` script.
     > **Note:** The script works in both CMD and PowerShell. Administrator privileges are NOT required, but you **must close the application** before running the script.
@@ -249,12 +249,12 @@ The application stores session data (node authorization) in a separate system fo
 
 ## 10. Troubleshooting
 
-**Issue:** Authentication failures or automatic deletion stops working.
+**Issue:** Authentication failures or automatic cleanup stops working.
 **Symptoms:**
 *   You successfully signed the message in ZelCore, but the node's web interface does not respond, and authorization does not occur.
 *   The node's web interface shows that you are authorized, but automation is not working.
-*   The application stopped removing target apps on a specific node without visible reasons.
-*   The application tries to remove the same app in every cycle but fails (often happens after a FluxOS version update).
+*   The application stopped stopping target apps on a specific node without visible reasons.
+*   The application tries to stop the same app in every cycle but fails (often happens after a FluxOS version update).
 
 **Solution:**
 A common cause is a FluxOS version update (e.g., from v7.x.x to v8.0.0 ArcaneOS) or session cache corruption. The old token becomes invalid, even though the session looks active.

@@ -490,7 +490,7 @@ function createMainWindow() {
     const appVersion = app.getVersion();
 
     mainWindow = new BrowserWindow({
-        title: `Flux Auto-Deleter v${appVersion}`,
+        title: `Flux Node Manager v${appVersion}`,
         width: WINDOW_WIDTH,
         height: WINDOW_HEIGHT,
         resizable: false,
@@ -693,8 +693,8 @@ async function removeApp(node, appName) {
         return { success: true, data: responseText };
 
     } catch (error) {
-        log(`API-${node.id}-Error`, `Error removing app ${appName}:`, error.message);
-        return { success: false, error: error.message, authError: false };
+        log(`API-${node.id}-Error`, `Error stopping application ${appName}:`, error.message);
+        return { success: false, error: error.message };
     }
 }
 
@@ -746,7 +746,7 @@ async function runAutomationCycle(node) {
     for (const app of appNames) {
         if (app.isTarget) {
             const mainAppName = app.name.substring(app.name.lastIndexOf('_') + 1);
-            log(`AUTO-${node.id}`, `Found target: @@YELLOW@@${app.name}##. Removing main app: @@YELLOW@@${mainAppName}##...`);
+            log(`AUTO-${node.id}`, `Policy match found: @@YELLOW@@${app.name}##. Enforcing cleanup for: @@YELLOW@@${mainAppName}##...`);
 
             const removeResult = await removeApp(node, mainAppName);
             
@@ -757,9 +757,9 @@ async function runAutomationCycle(node) {
                 break; // Exit the loop for this cycle
             } else if (!removeResult.success) {
                 // Log other, non-auth-related errors
-                log(`API-${node.id}-Error`, `Failed to remove app @@YELLOW@@${mainAppName}##: ${removeResult.error}`);
+                log(`API-${node.id}-Error`, `Failed to clean up app @@YELLOW@@${mainAppName}##: ${removeResult.error}`);
             } else {
-                log(`AUTO-${node.id}`, `Successfully sent removal request for @@YELLOW@@${mainAppName}##.`);
+                log(`AUTO-${node.id}`, `Successfully sent cleanup request for @@YELLOW@@${mainAppName}##.`);
             }
         }
     }

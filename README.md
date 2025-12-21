@@ -56,7 +56,7 @@ The application interacts with the following Flux node API endpoints:
     *   **Authentication:** Not required.
 
 -   `GET /apps/appremove?appname={appName}`
-    *   **Purpose:** Sends the command to stop/remove a specific application container from the node if it violates the policy.
+    *   **Purpose:** Sends the command to stop/clean up a specific application container from the node if it violates the policy.
     *   **Authentication:** **Required.** This request uses the `zelidauth` header with the token captured by `monitor-preload.js` to ensure only the node owner can perform this action.
 
 ## Troubleshooting
@@ -74,7 +74,7 @@ The application interacts with the following Flux node API endpoints:
     *   **Solution:** Check the `session.log` file located in the application's root directory. For more detailed diagnostics, set `Debug = true` in `settings.ini` and restart the application to generate more verbose logs.
 
 -   **Problem: Need to reset all application data/cache.**
-    *   **Solution:** Run the included `clean-session.bat` script. This will completely remove the application's data directory (`%AppData%\flux-node-manager`), effectively resetting the app to its initial state.
+    *   **Solution:** Run the included `clean-session.bat` script. This will completely clear the application's data directory (`%AppData%\flux-node-manager`), effectively resetting the app to its initial state.
 
 ## Development Workflow
 
