@@ -19,6 +19,7 @@ yarn-error.log*
 # OS-specific files
 .DS_Store
 Thumbs.db
+.vscode/
 
 # Environment variables / sensitive data
 .env
@@ -37,4 +38,8 @@ config.js.local
 *.snap
 
 # Backup files
-*.bak_*settings.ini
+*.bak
+*.swp
+
+# Configuration
+settings.ini
