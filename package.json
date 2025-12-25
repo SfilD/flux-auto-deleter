@@ -12,6 +12,14 @@
   "build": {
     "appId": "com.flux.nodemanager",
     "productName": "FluxNodeManager",
+    "files": [
+      "**/*",
+      "!session.log",
+      "!session.log.old",
+      "!sync-version.js",
+      "!.eslintrc.js",
+      "!*.md"
+    ],
     "extraFiles": [
       {
         "from": "settings.dist.ini",
