@@ -1,12 +1,13 @@
 {
   "name": "flux-node-manager",
   "version": "1.1.0",
-  "description": "Professional monitoring and management tool for Flux Nodes. Developed by SfilD Labs with Gemini AI assistance.",
+  "description": "Flux Node Manager - Professional monitoring and management tool",
   "main": "monitor-main.js",
   "scripts": {
     "start": "electron .",
     "dist": "set CSC_IDENTITY_AUTO_DISCOVERY=false && electron-builder && node package-bundle.js",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "version": "node sync-version.js && git add README.md README.ru.md"
   },
   "build": {
     "appId": "com.flux.nodemanager",

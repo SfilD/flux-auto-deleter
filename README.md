@@ -90,7 +90,18 @@ This section describes the unique development and testing environment for the pr
 
 **Key Point:** All runtime commands (e.g., `npm start`) must be executed **only within the Windows 10 Pro environment** on the virtual machine, not in WSL.
 
+### Version Management
 
+To update the application version, run the following command in the **WSL environment**:
+
+```bash
+npm version patch  # or minor, major
+```
+
+This command automatically:
+1.  Updates the version in `package.json` and `package-lock.json`.
+2.  Runs a script to update the version in `README.md` and `README.ru.md`.
+3.  Creates a git commit and tag.
 
 ## Feedback & Bug Reports
 
