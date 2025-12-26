@@ -110,9 +110,16 @@ function hideSideMenu() {
       ${finalIconSelector} { display: none !important; }
       ${githubLinkSelector} { display: none !important; }
       ${fluxAiButtonSelector} { display: none !important; }
+
+      /* Force Dark Scrollbars */
+      ::-webkit-scrollbar { width: 10px; height: 10px; background-color: #1a1a1a; }
+      ::-webkit-scrollbar-thumb { background-color: #4a5568; border-radius: 4px; border: 2px solid #1a1a1a; }
+      ::-webkit-scrollbar-thumb:hover { background-color: #718096; }
+      ::-webkit-scrollbar-track { background-color: #1a1a1a; }
+      ::-webkit-scrollbar-corner { background-color: #1a1a1a; }
     `;
         document.head.appendChild(style);
-        log('Injected CSS to hide UI elements.');
+        log('Injected CSS to hide UI elements and standardize scrollbars.');
     } catch (e) {
         log(`Error injecting CSS: ${e.message}`);
     }
@@ -128,17 +135,17 @@ function initializeMonitor() {
         const currentToken = localStorage.getItem('zelidauth');
         
         if (currentToken && currentToken !== lastSentToken) {
-            log('Login detected or token changed.');
+            log('@@GREEN@@Login detected## or token changed.');
             logState('Post-Login State');
             ipcRenderer.send('auth-state-changed', { nodeId: nodeId, loggedIn: true, token: currentToken });
-            log('Auth state [LOGGED IN] sent to main process.');
+            log('Auth state [@@GREEN@@LOGGED IN##] sent to main process.');
             lastSentToken = currentToken;
         } 
         else if (!currentToken && lastSentToken !== null) {
-            log('Logout detected.');
+            log('@@CYAN@@Logout detected##.');
             logState('Post-Logout State');
             ipcRenderer.send('auth-state-changed', { nodeId: nodeId, loggedIn: false, token: null });
-            log('Auth state [LOGGED OUT] sent to main process.');
+            log('Auth state [@@CYAN@@LOGGED OUT##] sent to main process.');
             lastSentToken = null;
         }
     };
@@ -163,7 +170,7 @@ function initializeMonitor() {
                 const lastKnownVersion = localStorage.getItem('last_known_flux_version');
     
                 if (lastKnownVersion && lastKnownVersion !== currentVersionText) {
-                    log(`FluxOS version change detected! Old: ${lastKnownVersion}, New: ${currentVersionText}`);
+                    log(`@@YELLOW@@FluxOS version change detected!## Old: @@CYAN@@${lastKnownVersion}##, New: @@GREEN@@${currentVersionText}##`);
                     ipcRenderer.send('fluxos-version-changed', { 
                         nodeId: nodeId, 
                         oldVersion: lastKnownVersion, 
@@ -184,6 +191,12 @@ function initializeMonitor() {
     window.addEventListener('load', () => {
         log('Page fully loaded. Performing initial state log.');
         logState('Initial State (After Load)');
+        
+        const currentToken = localStorage.getItem('zelidauth');
+        if (!currentToken) {
+            log('Initial state: @@CYAN@@NOT LOGGED IN##');
+        }
+
         checkFluxOSVersion();
         checkAuthState();
     });

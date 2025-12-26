@@ -136,7 +136,7 @@ resizeObserver.observe(contentContainer);
  */
 function addLogMessage(message) {
     const p = document.createElement('p');
-    const colorRegex = /@@(RED|GREEN|YELLOW)@@(.*?)##/g;
+    const colorRegex = /@@(RED|GREEN|YELLOW|CYAN|MAGENTA)@@(.*?)##/g;
     let lastIndex = 0;
     let match;
 
@@ -157,6 +157,10 @@ function addLogMessage(message) {
             span.style.color = '#69f0ae'; // A light green
         } else if (colorName === 'YELLOW') {
             span.style.color = '#ffd700'; // Gold-like yellow
+        } else if (colorName === 'CYAN') {
+            span.style.color = '#00e5ff'; // Bright cyan
+        } else if (colorName === 'MAGENTA') {
+            span.style.color = '#e040fb'; // Vivid Purple/Magenta
         }
         
         p.appendChild(span);

@@ -123,7 +123,7 @@ async function runAutomationCycle(node) {
     logger.log(`AUTO-${node.id}`, 'Cycle started.');
 
     if (!node.token) {
-        logger.log(`AUTO-${node.id}`, 'Automation cycle skipped: Not logged in.');
+        logger.log(`AUTO-${node.id}`, 'Automation cycle skipped: @@CYAN@@Not logged in##.');
         if (node.automationIntervalId) {
             clearInterval(node.automationIntervalId);
             node.automationIntervalId = null;
@@ -160,7 +160,7 @@ async function runAutomationCycle(node) {
             } else if (!removeResult.success) {
                 logger.log(`API-${node.id}-Error`, `Failed to clean up app @@YELLOW@@${mainAppName}##: ${removeResult.error}`);
             } else {
-                logger.log(`AUTO-${node.id}`, `Successfully sent cleanup request for @@YELLOW@@${mainAppName}##.`);
+                logger.log(`AUTO-${node.id}`, `Successfully sent cleanup request for @@MAGENTA@@${mainAppName}##.`);
             }
         }
     }
